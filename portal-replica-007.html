@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Probation Test Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      /* LIGHT MODE - Black & White */
+      --bg: #ffffff;
+      --bg-secondary: #f9fafb;
+      --fg: #000000;
+      --muted: #6b7280;
+      --accent: #000000;
+      --accent-dim: rgba(0, 0, 0, 0.05);
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --warning: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* Background Pattern */
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-secondary) 100%);
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 30%, black, transparent);
+    }
+
+    /* Floating Particles */
+    .particle {
+      position: fixed;
+      background: #000000;
+      opacity: 0.05;
+      border-radius: 50%;
+      animation: float 20s infinite ease-in-out;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0.05; }
+      50% { transform: translateY(-100px) translateX(20px); opacity: 0.1; }
+    }
+
+    /* Screen Transitions */
+    .screen {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .screen.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Card Styling */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Input Styles */
+    .input-field {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      transition: all 0.3s ease;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--fg);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* Button Styles */
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* Custom Checkbox */
+    .custom-checkbox {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .custom-checkbox:checked {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .custom-checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 6px;
+      height: 12px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .custom-checkbox:focus {
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* Rules List */
+    .rule-item {
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .rule-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+      width: 8px;
+      height: 8px;
+      background: var(--fg);
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+
+    /* Timer */
+    .timer {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer.warning {
+      color: var(--warning);
+      animation: pulse 1s infinite;
+    }
+
+    .timer.danger {
+      color: var(--danger);
+      animation: pulse 0.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Question Navigation */
+    .question-nav-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .question-nav-btn.answered {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .question-nav-btn.current {
+      border: 2px solid var(--fg);
+      color: var(--fg);
+      font-weight: 700;
+    }
+
+    .question-nav-btn:hover {
+      border-color: var(--fg);
+      color: var(--fg);
+    }
+
+    .question-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    #saveNextBtn:disabled,
+    #submitTestBtn:disabled {
+      pointer-events: none;
+    }
+
+    .test-viewport {
+      transition: filter 0.3s ease;
+    }
+
+    .test-viewport.locked {
+      filter: blur(15px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .lockout-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.58);
+      padding: 1rem;
+    }
+
+    .lockout-overlay.show {
+      display: flex;
+    }
+
+    .lockout-modal {
+      width: min(92vw, 520px);
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Radio Options */
+    .option-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .option-card:hover {
+      border-color: #9ca3af;
+    }
+
+    .option-card.selected {
+      border-color: var(--fg);
+      background: var(--accent-dim);
+    }
+
+    .option-radio {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .option-radio:checked {
+      border-color: var(--accent);
+    }
+
+    .option-radio:checked::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    /* Textarea */
+    .answer-textarea {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      resize: vertical;
+      min-height: 120px;
+      transition: all 0.3s ease;
+    }
+
+    .answer-textarea:focus {
+      outline: none;
+      border-color: var(--fg);
+    }
+
+    /* Progress Bar */
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.5s ease;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--danger);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-weight: 600;
+      z-index: 1000;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .alert-banner.show {
+      transform: translateY(0);
+    }
+
+    /* Section Tabs */
+    .section-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .section-tab.active {
+      background: var(--fg);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .section-tab:hover:not(.active) {
+      border-color: var(--fg);
+      color: var(--fg);
+    }
+
+    /* Animations */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-slide-up {
+      animation: slideUp 0.6s ease forwards;
+    }
+
+    .stagger-1 { animation-delay: 0.1s; }
+    .stagger-2 { animation-delay: 0.2s; }
+    .stagger-3 { animation-delay: 0.3s; }
+    .stagger-4 { animation-delay: 0.4s; }
+    .stagger-5 { animation-delay: 0.5s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    *:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  </style>
+</head>
+<body>
+  <!-- Background Elements -->
+  <div class="bg-pattern"></div>
+  <div class="bg-grid"></div>
+  
+  <!-- Floating Particles -->
+  <div class="particle" style="left: 10%; top: 20%; width: 2px; height: 2px; animation-delay: 0s;"></div>
+  <div class="particle" style="left: 30%; top: 60%; width: 4px; height: 4px; animation-delay: 2s;"></div>
+  <div class="particle" style="left: 70%; top: 30%; width: 3px; height: 3px; animation-delay: 4s;"></div>
+  <div class="particle" style="left: 85%; top: 70%; width: 2px; height: 2px; animation-delay: 6s;"></div>
+
+  <!-- Alert Banner -->
+  <div id="alertBanner" class="alert-banner">
+    Warning: Tab switching detected! This incident has been logged.
+  </div>
+
+  <!-- Login Screen -->
+  <section id="loginScreen" class="screen active min-h-screen items-center justify-center p-4 relative z-10">
+    <div class="login-card w-full max-w-md rounded-2xl p-8 md:p-10">
+      <!-- Logo -->
+      <div class="text-center mb-8 opacity-0 animate-slide-up stagger-1">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--fg)] text-white mb-4">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight">Probation Test Portal</h1>
+        <p class="text-[var(--muted)] mt-2 text-sm">Enter your credentials to begin</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-5">
+        <div class="opacity-0 animate-slide-up stagger-2">
+          <label for="username" class="block text-sm font-medium mb-2">Username</label>
+          <input type="text" id="username" class="input-field w-full px-4 py-3 rounded-xl text-base" placeholder="Enter your username" autocomplete="off" required>
+        </div>
+
+        <div class="opacity-0 animate-slide-up stagger-3">
+          <label for="password" class="block text-sm font-medium mb-2">Password</label>
+          <div class="relative">
+            <input type="password" id="password" class="input-field w-full px-4 py-3 rounded-xl text-base pr-12" placeholder="Enter your password" required>
+            <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors" aria-label="Toggle password visibility">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginError" class="hidden text-[var(--danger)] text-sm text-center py-2 opacity-0 animate-slide-up">
+          Invalid credentials. Please try again.
+        </div>
+
+        <button type="submit" class="btn-primary w-full py-3.5 rounded-xl text-base opacity-0 animate-slide-up stagger-4">
+          Sign In
+        </button>
+      </form>
+
+      <p class="text-center text-[var(--muted)] text-xs mt-6 opacity-0 animate-slide-up stagger-5">
+        This is a secure examination portal. All activities are monitored.
+      </p>
+    </div>
+  </section>
+
+  <!-- Rules Screen -->
+  <section id="rulesScreen" class="screen min-h-screen items-center justify-center p-4 relative z-10">
+    <div class="login-card w-full max-w-2xl rounded-2xl p-8 md:p-10">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl border border-[var(--border)] mb-4 text-[var(--fg)]">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight">Test Guidelines</h1>
+        <p class="text-[var(--muted)] mt-2 text-sm">Please read and understand the following rules</p>
+      </div>
+
+      <!-- Rules List -->
+      <div class="space-y-4 mb-8">
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Stay on the Test Tab:</span> 
+          <span class="text-[var(--muted)]">Leaving the test tab or switching windows is logged and triggers a strict 2-tier penalty while your main timer keeps running.</span>
+        </div>
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Tab-Switch Penalties:</span> 
+          <span class="text-[var(--muted)]">1st violation locks the test for 45 seconds. 2nd violation instantly terminates and submits the test.</span>
+        </div>
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Instant Termination:</span> 
+          <span class="text-[var(--muted)]">There are no further warnings after the first lock penalty. The next tab or window switch ends the test for excessive tab switching.</span>
+        </div>
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Restricted Actions:</span> 
+          <span class="text-[var(--muted)]">Copy, cut, paste, right-click, and keyboard shortcuts such as Alt, Ctrl, or Cmd combinations are blocked and logged as separate violations.</span>
+        </div>
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Monitored Session:</span> 
+          <span class="text-[var(--muted)]">All tab and keyboard violations are stored with your test session and may affect your probation assessment.</span>
+        </div>
+        <div class="rule-item text-sm md:text-base py-2">
+          <span class="font-bold">Time Limit:</span> 
+          <span id="testDurationRuleText" class="text-[var(--muted)]">The test duration is 1 hour and 15 minutes. Lockout penalties do not pause the timer, so submit before the timer expires.</span>
+        </div>
+      </div>
+
+      <!-- Checkbox & Button -->
+      <div class="border-t border-[var(--border)] pt-6">
+        <label class="flex items-start gap-3 mb-6 cursor-pointer">
+          <input type="checkbox" id="agreeCheckbox" class="custom-checkbox mt-0.5">
+          <span class="text-sm text-[var(--muted)]">
+            I have read and understood all the rules. I agree to abide by the examination guidelines.
+          </span>
+        </label>
+
+        <button id="startTestBtn" class="btn-primary w-full py-3.5 rounded-xl text-base disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none" disabled>
+          Continue to Test
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Test Screen -->
+  <section id="testScreen" class="screen min-h-screen flex-col relative z-10">
+    <div id="testViewport" class="test-viewport flex min-h-screen flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 bg-[var(--bg)]/90 backdrop-blur-lg border-b border-[var(--border)] z-50">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-[var(--fg)] text-white flex items-center justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <span class="font-semibold text-sm md:text-base hidden sm:block">Probation Test</span>
+          </div>
+          
+          <!-- Section Tabs -->
+          <div class="hidden md:flex items-center gap-2">
+            <button class="section-tab active" data-section="mcq">MCQ (20)</button>
+            <button class="section-tab" data-section="short">Short (3)</button>
+            <button class="section-tab" data-section="long">Long (2)</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Progress -->
+          <div class="hidden sm:block">
+            <div class="text-xs text-[var(--muted)] mb-1">Progress: <span id="progressText">0/25</span></div>
+            <div class="progress-bar w-32">
+              <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
+          
+          <!-- Timer -->
+          <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[var(--border)]">
+            <svg class="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span id="timer" class="timer font-semibold">75:00</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col lg:flex-row">
+      <!-- Question Navigation Sidebar -->
+      <aside class="lg:w-64 bg-[var(--bg-secondary)] border-b lg:border-b-0 lg:border-r border-[var(--border)] p-4">
+        <div class="lg:sticky lg:top-20">
+          <!-- Mobile Section Tabs -->
+          <div class="flex md:hidden items-center gap-2 mb-4 overflow-x-auto pb-2">
+            <button class="section-tab active" data-section="mcq">MCQ</button>
+            <button class="section-tab" data-section="short">Short</button>
+            <button class="section-tab" data-section="long">Long</button>
+          </div>
+
+          <h3 class="font-semibold text-sm mb-3 hidden lg:block">Question Navigator</h3>
+          
+          <!-- MCQ Section -->
+          <div id="mcqNav" class="mb-4">
+            <p class="text-xs text-[var(--muted)] mb-2 hidden lg:block">MCQ Questions</p>
+            <div id="mcqGrid" class="grid grid-cols-10 lg:grid-cols-5 gap-2"></div>
+          </div>
+
+          <!-- Short Questions Section -->
+          <div id="shortNav" class="mb-4 hidden">
+            <p class="text-xs text-[var(--muted)] mb-2 hidden lg:block">Short Questions</p>
+            <div id="shortGrid" class="grid grid-cols-10 lg:grid-cols-5 gap-2"></div>
+          </div>
+
+          <!-- Long Questions Section -->
+          <div id="longNav" class="hidden">
+            <p class="text-xs text-[var(--muted)] mb-2 hidden lg:block">Long Questions</p>
+            <div id="longGrid" class="grid grid-cols-10 lg:grid-cols-5 gap-2"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Question Content -->
+      <div class="flex-1 p-4 md:p-8">
+        <div class="max-w-3xl mx-auto">
+          <!-- Question Card -->
+          <div class="login-card rounded-2xl p-6 md:p-8">
+            <div class="flex items-center justify-between mb-6">
+              <span id="questionLabel" class="text-xs font-semibold uppercase tracking-wider border border-[var(--border)] bg-[var(--bg-secondary)] px-3 py-1 rounded-full">
+                MCQ Question 1
+              </span>
+              <span id="questionMarks" class="text-sm text-[var(--muted)]">1 Mark</span>
+            </div>
+
+            <h2 id="questionText" class="text-lg md:text-xl font-medium mb-6 leading-relaxed">
+              Loading question...
+            </h2>
+
+            <!-- MCQ Options -->
+            <div id="mcqOptions" class="space-y-3"></div>
+
+            <!-- Text Answer -->
+            <div id="textAnswer" class="hidden">
+              <textarea id="answerTextarea" class="answer-textarea w-full rounded-xl px-4 py-3" placeholder="Type your answer here..." rows="6"></textarea>
+              <p class="text-xs text-[var(--muted)] mt-2">Word count: <span id="wordCount">0</span></p>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex items-center justify-between mt-8 pt-6 border-t border-[var(--border)]">
+              <button id="prevBtn" class="btn-secondary px-6 py-2.5 rounded-xl text-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Previous
+              </button>
+
+              <button id="saveNextBtn" class="btn-primary px-6 py-2.5 rounded-xl text-sm flex items-center gap-2">
+                Save & Next
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="mt-6 text-center">
+            <button id="submitTestBtn" class="border border-[var(--danger)] text-[var(--danger)] hover:bg-[var(--danger)] hover:text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105">
+              Submit Test
+            </button>
+            <p class="text-xs text-[var(--muted)] mt-2">Make sure you've reviewed all answers before submitting</p>
+          </div>
+        </div>
+      </div>
+    </main>
+    </div>
+
+    <div id="lockoutOverlay" class="lockout-overlay" role="dialog" aria-modal="true" aria-labelledby="lockoutTitle">
+      <div class="lockout-modal rounded-2xl p-6 text-center">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--danger)]/10 text-[var(--danger)]">
+          <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          </svg>
+        </div>
+        <h2 id="lockoutTitle" class="text-2xl font-bold text-[var(--fg)]">Test Locked</h2>
+        <p id="lockoutMessage" class="mt-3 text-sm leading-6 text-[var(--muted)]"></p>
+        <div class="mt-6 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Penalty time remaining</p>
+          <p id="lockoutTimer" class="timer mt-2 text-4xl font-bold text-[var(--danger)]">00:45</p>
+        </div>
+        <p class="mt-4 text-xs text-[var(--muted)]">The main test timer is still running in the background.</p>
+      </div>
+    </div>
+
+    <div id="submitConfirmOverlay" class="lockout-overlay" role="dialog" aria-modal="true" aria-labelledby="submitConfirmTitle">
+      <div class="lockout-modal rounded-2xl p-6 text-center">
+        <h2 id="submitConfirmTitle" class="text-2xl font-bold text-[var(--fg)]">Submit test?</h2>
+        <p id="submitConfirmMessage" class="mt-3 text-sm leading-6 text-[var(--muted)]"></p>
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          <button id="cancelSubmitBtn" type="button" class="btn-secondary rounded-xl px-5 py-3 text-sm font-semibold">
+            Cancel
+          </button>
+          <button id="confirmSubmitBtn" type="button" class="btn-primary rounded-xl px-5 py-3 text-sm font-semibold">
+            Yes, Submit
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Completion Screen -->
+  <section id="completionScreen" class="screen min-h-screen items-center justify-center p-4 relative z-10">
+    <div class="text-center max-w-lg">
+      <!-- Success Animation -->
+      <div class="relative w-32 h-32 mx-auto mb-8">
+        <div class="absolute inset-0 rounded-full border-4 border-[var(--fg)] opacity-10 animate-ping"></div>
+        <div class="relative w-32 h-32 rounded-full bg-[var(--fg)] text-white flex items-center justify-center">
+          <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="text-3xl md:text-4xl font-bold mb-4">Thank You!</h1>
+      <p class="text-lg text-[var(--muted)] mb-6">
+        Your probation test has been successfully submitted.
+      </p>
+
+      <div class="login-card rounded-2xl p-6 mb-6 text-left">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <span class="font-semibold">Results Notification</span>
+        </div>
+        <p class="text-sm text-[var(--muted)]">
+          Your test results will be shared with you via your registered email address shortly.
+        </p>
+      </div>
+
+      <div class="flex items-center justify-center gap-2 text-sm text-[var(--muted)]">
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Session completed</span>
+      </div>
+    </div>
+  </section>
+
+  <script src="./app-config.js"></script>
+  <script>
+    // =====================
+    // DATA
+    // =====================
+    const portalConfig = window.__PROBATION_TEST_CONFIG__ || {};
+    const SUPABASE_URL = portalConfig.supabaseUrl;
+    const SUPABASE_ANON_KEY = portalConfig.supabaseAnonKey;
+    const AI_TEST_CHECKER_WEBHOOK_URL = portalConfig.aiTestCheckerWebhookUrl;
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !AI_TEST_CHECKER_WEBHOOK_URL) {
+      throw new Error('Missing portal runtime configuration. Generate public/app-config.js from .env before serving the app.');
+    }
+    const linkedUsername = new URLSearchParams(window.location.search).get('username') || '';
+    function getAssignedTestDurationMinutes() {
+      const duration = Number(new URLSearchParams(window.location.search).get('duration'));
+      return Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 75;
+    }
+    function formatDurationLabel(minutes) {
+      if (minutes === 60) return '1 hour';
+      if (minutes > 60 && minutes % 60 === 0) return `${minutes / 60} hours`;
+      if (minutes > 60) {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        return `${hours} hour${hours > 1 ? 's' : ''} and ${remainingMinutes} minutes`;
+      }
+      return `${minutes} minutes`;
+    }
+    const TEST_DURATION_MINUTES = getAssignedTestDurationMinutes();
+    const TEST_DURATION = TEST_DURATION_MINUTES * 60;
+
+    // Questions Data
+    let questions = {
+      mcq: [
+        { question: "What does HTML stand for?", options: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyper Transfer Markup Language", "Home Tool Markup Language"], correct: 0 },
+        { question: "Which CSS property is used to change the text color?", options: ["text-color", "font-color", "color", "text-style"], correct: 2 },
+        { question: "What is the correct syntax to declare a JavaScript variable?", options: ["variable x = 5", "v x = 5", "let x = 5", "int x = 5"], correct: 2 },
+        { question: "Which tag is used for creating a hyperlink in HTML?", options: ["<link>", "<a>", "<href>", "<url>"], correct: 1 },
+        { question: "What does CSS stand for?", options: ["Creative Style Sheets", "Cascading Style Sheets", "Computer Style Sheets", "Colorful Style Sheets"], correct: 1 },
+        { question: "Which JavaScript method is used to select an element by its ID?", options: ["getElement()", "getElementById()", "querySelector()", "selectById()"], correct: 1 },
+        { question: "What is the correct HTML element for inserting a line break?", options: ["<break>", "<lb>", "<br>", "<newline>"], correct: 2 },
+        { question: "Which property is used to change the background color in CSS?", options: ["bgcolor", "background-color", "color", "background"], correct: 1 },
+        { question: "How do you write a comment in JavaScript?", options: ["<!-- comment -->", "/* comment */", "# comment", "// comment or /* comment */"], correct: 3 },
+        { question: "Which HTML attribute is used to define inline styles?", options: ["class", "styles", "style", "font"], correct: 2 },
+        { question: "What is the correct way to create a function in JavaScript?", options: ["function:myFunction()", "function myFunction()", "function = myFunction()", "create myFunction()"], correct: 1 },
+        { question: "Which CSS property controls the text size?", options: ["text-size", "font-size", "text-style", "font-style"], correct: 1 },
+        { question: "How do you call a function named 'myFunction' in JavaScript?", options: ["call myFunction()", "myFunction()", "call function myFunction()", "execute myFunction()"], correct: 1 },
+        { question: "Which symbol is used for ID selector in CSS?", options: [".", "#", "@", "*"], correct: 1 },
+        { question: "What is the purpose of the <title> tag in HTML?", options: ["Defines a heading", "Defines the document title", "Defines a table", "Defines a title attribute"], correct: 1 },
+        { question: "Which operator is used for strict equality in JavaScript?", options: ["==", "===", "=", "!="], correct: 1 },
+        { question: "What does the 'display: none' CSS property do?", options: ["Hides element but takes space", "Hides element without taking space", "Shows element", "Changes visibility"], correct: 1 },
+        { question: "Which method adds an element to the end of an array in JavaScript?", options: ["push()", "pop()", "shift()", "unshift()"], correct: 0 },
+        { question: "What is the correct HTML for creating a checkbox?", options: ["<input type='check'>", "<checkbox>", "<input type='checkbox'>", "<check>"], correct: 2 },
+        { question: "Which event occurs when the user clicks on an HTML element?", options: ["onchange", "onmouseclick", "onclick", "onmouseover"], correct: 2 }
+      ],
+      short: [
+        { question: "Explain the difference between '==' and '===' operators in JavaScript. Provide an example.", marks: 5 },
+        { question: "What is the box model in CSS? Name its components and briefly explain each.", marks: 5 },
+        { question: "Describe the difference between 'let', 'const', and 'var' in JavaScript.", marks: 5 }
+      ],
+      long: [
+        { question: "Design a responsive web layout strategy. Explain the key concepts including flexbox, grid, and media queries. Provide examples of when to use each approach and how they work together to create a responsive design.", marks: 15 },
+        { question: "Explain the concept of asynchronous programming in JavaScript. Cover callbacks, promises, and async/await. Discuss the advantages and disadvantages of each approach with code examples.", marks: 15 }
+      ]
+    };
+
+    // =====================
+    // STATE
+    // =====================
+    let currentSection = 'mcq';
+    let currentQuestionIndex = 0;
+    let answers = {
+      mcq: new Array(questions.mcq.length).fill(null),
+      short: new Array(questions.short.length).fill(''),
+      long: new Array(questions.long.length).fill('')
+    };
+    let timerInterval = null;
+    let remainingTime = TEST_DURATION;
+    let testSubmitted = false;
+    let candidateRecord = null;
+    let testSessionRecord = null;
+    let answerRecordIds = {};
+    let tabViolations = 0;
+    let keyViolations = 0;
+    let isTerminatingTest = false;
+    let isLockoutActive = false;
+    let lockoutInterval = null;
+    let lastTabViolationAt = 0;
+    let suppressFocusViolationUntil = 0;
+    let blurCheckTimeout = null;
+    let progressSyncTimer = null;
+    let progressSyncInFlight = false;
+    let pendingProgressSnapshot = null;
+
+    // =====================
+    // DOM ELEMENTS
+    // =====================
+    const screens = {
+      login: document.getElementById('loginScreen'),
+      rules: document.getElementById('rulesScreen'),
+      test: document.getElementById('testScreen'),
+      completion: document.getElementById('completionScreen')
+    };
+
+    const loginForm = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const loginError = document.getElementById('loginError');
+    const agreeCheckbox = document.getElementById('agreeCheckbox');
+    const startTestBtn = document.getElementById('startTestBtn');
+    const timerDisplay = document.getElementById('timer');
+    const testDurationRuleText = document.getElementById('testDurationRuleText');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const questionLabel = document.getElementById('questionLabel');
+    const questionMarks = document.getElementById('questionMarks');
+    const questionText = document.getElementById('questionText');
+    const mcqOptions = document.getElementById('mcqOptions');
+    const textAnswer = document.getElementById('textAnswer');
+    const answerTextarea = document.getElementById('answerTextarea');
+    const wordCount = document.getElementById('wordCount');
+    const prevBtn = document.getElementById('prevBtn');
+    const saveNextBtn = document.getElementById('saveNextBtn');
+    const submitTestBtn = document.getElementById('submitTestBtn');
+    const sectionTabs = document.querySelectorAll('.section-tab');
+    const alertBanner = document.getElementById('alertBanner');
+    const testViewport = document.getElementById('testViewport');
+    const lockoutOverlay = document.getElementById('lockoutOverlay');
+    const lockoutMessage = document.getElementById('lockoutMessage');
+    const lockoutTimer = document.getElementById('lockoutTimer');
+    const submitConfirmOverlay = document.getElementById('submitConfirmOverlay');
+    const submitConfirmMessage = document.getElementById('submitConfirmMessage');
+    const cancelSubmitBtn = document.getElementById('cancelSubmitBtn');
+    const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
+    timerDisplay.textContent = formatTime(TEST_DURATION);
+    testDurationRuleText.textContent = `The test duration is ${formatDurationLabel(TEST_DURATION_MINUTES)}. Lockout penalties do not pause the timer, so submit before the timer expires.`;
+    usernameInput.value = linkedUsername;
+
+    // =====================
+    // UTILITY FUNCTIONS
+    // =====================
+    function showScreen(screenName) {
+      Object.values(screens).forEach(screen => screen.classList.remove('active'));
+      screens[screenName].classList.add('active');
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function showAlert(message) {
+      alertBanner.textContent = message;
+      alertBanner.classList.add('show');
+      setTimeout(() => alertBanner.classList.remove('show'), 3000);
+    }
+
+    function suppressFocusViolations(milliseconds = 2500) {
+      suppressFocusViolationUntil = Math.max(suppressFocusViolationUntil, Date.now() + milliseconds);
+    }
+
+    function shouldIgnoreFocusViolation() {
+      return (
+        testSubmitted ||
+        Date.now() < suppressFocusViolationUntil ||
+        submitConfirmOverlay.classList.contains('show') ||
+        !screens.test.classList.contains('active')
+      );
+    }
+
+    function showSubmitConfirmation(message) {
+      suppressFocusViolations(3500);
+      submitConfirmMessage.textContent = message;
+      submitConfirmOverlay.classList.add('show');
+    }
+
+    function hideSubmitConfirmation() {
+      suppressFocusViolations(3500);
+      submitConfirmOverlay.classList.remove('show');
+    }
+
+    function getViolationStateBundle() {
+      return {
+        tab_violations_count: tabViolations,
+        key_violations_count: keyViolations,
+        total_violations_count: tabViolations + keyViolations
+      };
+    }
+
+    function supabaseHeaders(extra = {}) {
+      return {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        ...extra
+      };
+    }
+
+    function getProgressBackupKey(sessionId = testSessionRecord?.id) {
+      return sessionId ? `test_session_${sessionId}_backup` : '';
+    }
+
+    function getQuestionIdForPosition(section = currentSection, index = currentQuestionIndex) {
+      return questions[section]?.[index]?.id || null;
+    }
+
+    function cloneAnswerState() {
+      return {
+        mcq: [...answers.mcq],
+        short: [...answers.short],
+        long: [...answers.long]
+      };
+    }
+
+    function buildProgressSnapshot() {
+      if (!testSessionRecord?.id || !candidateRecord?.id) return null;
+
+      return {
+        version: 1,
+        session_id: testSessionRecord.id,
+        candidate_id: candidateRecord.id,
+        batch_id: candidateRecord.batch_id,
+        current_question_id: getQuestionIdForPosition(),
+        current_section: currentSection,
+        current_question_index: currentQuestionIndex,
+        answers: cloneAnswerState(),
+        remaining_countdown_timer_seconds: Math.max(remainingTime, 0),
+        tab_violations_count: tabViolations,
+        key_violations_count: keyViolations,
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    function saveProgressLocally() {
+      const snapshot = buildProgressSnapshot();
+      const backupKey = getProgressBackupKey();
+      if (!snapshot || !backupKey) return null;
+
+      try {
+        localStorage.setItem(backupKey, JSON.stringify(snapshot));
+      } catch (error) {
+        console.warn('Local test progress backup failed:', error);
+      }
+
+      return snapshot;
+    }
+
+    function readProgressBackup(sessionId = testSessionRecord?.id) {
+      const backupKey = getProgressBackupKey(sessionId);
+      if (!backupKey) return null;
+
+      try {
+        const rawBackup = localStorage.getItem(backupKey);
+        if (!rawBackup) return null;
+        const parsedBackup = JSON.parse(rawBackup);
+        return parsedBackup?.session_id === sessionId ? parsedBackup : null;
+      } catch (error) {
+        console.warn('Local test progress backup could not be read:', error);
+        return null;
+      }
+    }
+
+    function clearProgressBackup(sessionId = testSessionRecord?.id) {
+      if (progressSyncTimer) {
+        clearTimeout(progressSyncTimer);
+        progressSyncTimer = null;
+      }
+      pendingProgressSnapshot = null;
+      const backupKey = getProgressBackupKey(sessionId);
+      if (!backupKey) return;
+
+      try {
+        localStorage.removeItem(backupKey);
+      } catch (error) {
+        console.warn('Local test progress backup could not be cleared:', error);
+      }
+    }
+
+    async function syncProgressState(snapshot = buildProgressSnapshot()) {
+      if (!snapshot?.session_id) return false;
+
+      if (progressSyncInFlight) {
+        pendingProgressSnapshot = snapshot;
+        return false;
+      }
+
+      progressSyncInFlight = true;
+      try {
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/test_sessions?id=eq.${encodeURIComponent(snapshot.session_id)}`,
+          {
+            method: 'PATCH',
+            headers: supabaseHeaders({
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            }),
+            body: JSON.stringify({
+              progress_state: snapshot,
+              time_remaining_seconds: snapshot.remaining_countdown_timer_seconds
+            })
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        return true;
+      } catch (error) {
+        console.warn('Cloud test progress sync failed:', error);
+        return false;
+      } finally {
+        progressSyncInFlight = false;
+        if (pendingProgressSnapshot && !testSubmitted) {
+          const nextSnapshot = pendingProgressSnapshot;
+          pendingProgressSnapshot = null;
+          scheduleProgressSync(1000, nextSnapshot);
+        }
+      }
+    }
+
+    function scheduleProgressSync(delay = 4000, explicitSnapshot = null) {
+      const snapshot = explicitSnapshot || saveProgressLocally();
+      if (!snapshot || testSubmitted) return;
+
+      if (progressSyncTimer) {
+        clearTimeout(progressSyncTimer);
+      }
+
+      progressSyncTimer = setTimeout(() => {
+        progressSyncTimer = null;
+        syncProgressState(snapshot);
+      }, delay);
+    }
+
+    async function flushProgressState() {
+      if (progressSyncTimer) {
+        clearTimeout(progressSyncTimer);
+        progressSyncTimer = null;
+      }
+      const snapshot = saveProgressLocally();
+      if (snapshot) {
+        await syncProgressState(snapshot);
+      }
+    }
+
+    function resizeAnswerArray(sourceValue, targetLength, fallbackValue) {
+      const sourceArray = Array.isArray(sourceValue) ? sourceValue : [];
+      return Array.from({ length: targetLength }, (_, index) =>
+        sourceArray[index] === undefined ? fallbackValue : sourceArray[index]
+      );
+    }
+
+    function findQuestionPositionById(questionId) {
+      if (!questionId) return null;
+
+      for (const section of ['mcq', 'short', 'long']) {
+        const index = questions[section].findIndex(question => question.id === questionId);
+        if (index !== -1) return { section, index };
+      }
+
+      return null;
+    }
+
+    function getMostRecentProgressSnapshot(cloudSnapshot) {
+      const localSnapshot = readProgressBackup(testSessionRecord?.id);
+      if (localSnapshot && !cloudSnapshot) return localSnapshot;
+      if (!localSnapshot && cloudSnapshot) return cloudSnapshot;
+      if (!localSnapshot && !cloudSnapshot) return null;
+
+      const localTime = new Date(localSnapshot.updated_at || 0).getTime();
+      const cloudTime = new Date(cloudSnapshot.updated_at || 0).getTime();
+      return localTime >= cloudTime ? localSnapshot : cloudSnapshot;
+    }
+
+    function hydrateProgressSnapshot(snapshot) {
+      if (!snapshot || snapshot.session_id !== testSessionRecord?.id) return false;
+
+      const nextAnswers = snapshot.answers || {};
+      answers = {
+        mcq: resizeAnswerArray(nextAnswers.mcq, questions.mcq.length, null).map(value =>
+          Number.isInteger(value) ? value : null
+        ),
+        short: resizeAnswerArray(nextAnswers.short, questions.short.length, '').map(value =>
+          typeof value === 'string' ? value : ''
+        ),
+        long: resizeAnswerArray(nextAnswers.long, questions.long.length, '').map(value =>
+          typeof value === 'string' ? value : ''
+        )
+      };
+
+      const positionFromId = findQuestionPositionById(snapshot.current_question_id);
+      const sectionIsValid = ['mcq', 'short', 'long'].includes(snapshot.current_section);
+      const indexIsValid =
+        sectionIsValid &&
+        Number.isInteger(snapshot.current_question_index) &&
+        snapshot.current_question_index >= 0 &&
+        snapshot.current_question_index < questions[snapshot.current_section].length;
+
+      if (positionFromId) {
+        currentSection = positionFromId.section;
+        currentQuestionIndex = positionFromId.index;
+      } else if (indexIsValid) {
+        currentSection = snapshot.current_section;
+        currentQuestionIndex = snapshot.current_question_index;
+      }
+
+      const savedRemaining = Number(snapshot.remaining_countdown_timer_seconds);
+      if (Number.isFinite(savedRemaining)) {
+        remainingTime = Math.min(TEST_DURATION, Math.max(0, Math.floor(savedRemaining)));
+        timerDisplay.textContent = formatTime(remainingTime);
+      }
+
+      tabViolations = Math.max(tabViolations, Number(snapshot.tab_violations_count) || 0);
+      keyViolations = Math.max(keyViolations, Number(snapshot.key_violations_count) || 0);
+      return true;
+    }
+
+    function hydrateProgressFromSession() {
+      if (!testSessionRecord?.id) return false;
+      const snapshot = getMostRecentProgressSnapshot(testSessionRecord.progress_state);
+      const hydrated = hydrateProgressSnapshot(snapshot);
+      if (hydrated) {
+        saveProgressLocally();
+      }
+      return hydrated;
+    }
+
+    function normalizeQuestionRow(row) {
+      let options = [];
+      if (row.options) {
+        const parsedOptions =
+          typeof row.options === 'string' ? JSON.parse(row.options) : row.options;
+        if (Array.isArray(parsedOptions)) {
+          options = parsedOptions;
+        } else if (parsedOptions && typeof parsedOptions === 'object') {
+          options = ['A', 'B', 'C', 'D']
+            .map(label => parsedOptions[label] || parsedOptions[label.toLowerCase()])
+            .filter(Boolean);
+        }
+      }
+
+      return {
+        id: row.id,
+        question: row.question,
+        options,
+        correct: row.correct_answer,
+        marks: row.type === 'long' ? 15 : row.type === 'short' ? 5 : 1
+      };
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    async function authenticateCandidate(username, password) {
+      if (!linkedUsername || username !== linkedUsername) {
+        throw new Error('Invalid or expired test link');
+      }
+
+      const rows = await fetchJson(
+        `${SUPABASE_URL}/rest/v1/candidates?select=*&username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&limit=1`,
+        { headers: supabaseHeaders() }
+      );
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw new Error('Invalid credentials');
+      }
+
+      const candidate = rows[0];
+      if (!candidate.is_active || candidate.status === 'completed' || candidate.status === 'terminated') {
+        throw new Error('This test link is no longer valid');
+      }
+
+      return candidate;
+    }
+
+    async function loadAssignedQuestions(batchId) {
+      const rows = await fetchJson(
+        `${SUPABASE_URL}/rest/v1/questions?batch_id=eq.${encodeURIComponent(batchId)}&order=order_index.asc`,
+        { headers: supabaseHeaders() }
+      );
+
+      questions = {
+        mcq: rows.filter(row => row.type === 'mcq').map(normalizeQuestionRow),
+        short: rows.filter(row => row.type === 'short').map(normalizeQuestionRow),
+        long: rows.filter(row => row.type === 'long').map(normalizeQuestionRow)
+      };
+      answers = {
+        mcq: new Array(questions.mcq.length).fill(null),
+        short: new Array(questions.short.length).fill(''),
+        long: new Array(questions.long.length).fill('')
+      };
+      currentSection = questions.mcq.length ? 'mcq' : questions.short.length ? 'short' : 'long';
+      currentQuestionIndex = 0;
+      sectionTabs.forEach(tab => {
+        const section = tab.dataset.section;
+        const label = section === 'mcq' ? 'MCQ' : section === 'short' ? 'Short' : 'Long';
+        tab.textContent = `${label} (${questions[section].length})`;
+      });
+      progressText.textContent = `0/${getFlatQuestionRefs().length}`;
+      progressFill.style.width = '0%';
+    }
+
+    async function fetchExistingInProgressSession() {
+      if (!candidateRecord?.id) return null;
+
+      const rows = await fetchJson(
+        `${SUPABASE_URL}/rest/v1/test_sessions?select=*&candidate_id=eq.${encodeURIComponent(candidateRecord.id)}&batch_id=eq.${encodeURIComponent(candidateRecord.batch_id)}&status=eq.in_progress&order=created_at.desc&limit=1`,
+        { headers: supabaseHeaders() }
+      );
+
+      return Array.isArray(rows) && rows.length ? rows[0] : null;
+    }
+
+    async function createTestSession() {
+      const existingSession = await fetchExistingInProgressSession();
+      if (existingSession) {
+        testSessionRecord = existingSession;
+        remainingTime = calculateSessionRemainingTime(existingSession);
+        timerDisplay.textContent = formatTime(remainingTime);
+        return existingSession;
+      }
+
+      const initialProgressState = {
+        version: 1,
+        session_id: null,
+        candidate_id: candidateRecord.id,
+        batch_id: candidateRecord.batch_id,
+        current_question_id: getQuestionIdForPosition(),
+        current_section: currentSection,
+        current_question_index: currentQuestionIndex,
+        answers: cloneAnswerState(),
+        remaining_countdown_timer_seconds: TEST_DURATION,
+        tab_violations_count: 0,
+        key_violations_count: 0,
+        updated_at: new Date().toISOString()
+      };
+      const rows = await fetchJson(`${SUPABASE_URL}/rest/v1/test_sessions`, {
+        method: 'POST',
+        headers: supabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        }),
+        body: JSON.stringify({
+          candidate_id: candidateRecord.id,
+          batch_id: candidateRecord.batch_id,
+          started_at: new Date().toISOString(),
+          time_limit_minutes: Math.ceil(TEST_DURATION / 60),
+          time_remaining_seconds: TEST_DURATION,
+          status: 'in_progress',
+          progress_state: initialProgressState
+        })
+      });
+
+      testSessionRecord = rows[0];
+      if (testSessionRecord?.id) {
+        testSessionRecord.progress_state = {
+          ...initialProgressState,
+          session_id: testSessionRecord.id
+        };
+        saveProgressLocally();
+        scheduleProgressSync(1000);
+      }
+      return testSessionRecord;
+    }
+
+    function calculateSessionRemainingTime(sessionRow) {
+      const storedRemaining = Number(sessionRow?.progress_state?.remaining_countdown_timer_seconds);
+      if (Number.isFinite(storedRemaining)) {
+        return Math.min(TEST_DURATION, Math.max(0, Math.floor(storedRemaining)));
+      }
+
+      const rowRemaining = Number(sessionRow?.time_remaining_seconds);
+      if (Number.isFinite(rowRemaining) && rowRemaining >= 0) {
+        return Math.min(TEST_DURATION, Math.floor(rowRemaining));
+      }
+
+      if (sessionRow?.started_at) {
+        const elapsedSeconds = Math.floor((Date.now() - new Date(sessionRow.started_at).getTime()) / 1000);
+        return Math.max(TEST_DURATION - elapsedSeconds, 0);
+      }
+
+      return TEST_DURATION;
+    }
+
+    function getQuestionBySection(section, index) {
+      return questions[section][index];
+    }
+
+    async function saveAnswer(section, index) {
+      if (!candidateRecord || !testSessionRecord) return;
+      const question = getQuestionBySection(section, index);
+      if (!question?.id) return;
+
+      const answerText = section === 'mcq'
+        ? answers.mcq[index] === null
+          ? ''
+          : String.fromCharCode(65 + answers.mcq[index]) + '. ' + question.options[answers.mcq[index]]
+        : answers[section][index] || '';
+
+      if (!answerText.trim()) return;
+
+      const payload = {
+        session_id: testSessionRecord.id,
+        candidate_id: candidateRecord.id,
+        question_id: question.id,
+        question_type: section,
+        answer_text: answerText
+      };
+
+      if (answerRecordIds[question.id]) {
+        await fetch(`${SUPABASE_URL}/rest/v1/answers?id=eq.${encodeURIComponent(answerRecordIds[question.id])}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ answer_text: answerText })
+        });
+        return;
+      }
+
+      const rows = await fetchJson(`${SUPABASE_URL}/rest/v1/answers`, {
+        method: 'POST',
+        headers: supabaseHeaders({
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        }),
+        body: JSON.stringify(payload)
+      });
+      if (rows[0]?.id) answerRecordIds[question.id] = rows[0].id;
+    }
+
+    async function finalizeTestSession() {
+      if (!candidateRecord || !testSessionRecord) return;
+      const requests = [
+        fetch(`${SUPABASE_URL}/rest/v1/test_sessions?id=eq.${encodeURIComponent(testSessionRecord.id)}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            status: 'submitted',
+            submitted_at: new Date().toISOString(),
+            time_remaining_seconds: Math.max(remainingTime, 0),
+            progress_state: null
+          })
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/candidates?id=eq.${encodeURIComponent(candidateRecord.id)}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            status: 'completed',
+            is_active: false
+          })
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/results`, {
+          method: 'POST',
+          headers: supabaseHeaders({
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation'
+          }),
+          body: JSON.stringify({
+            session_id: testSessionRecord.id,
+            candidate_id: candidateRecord.id,
+            total_questions: getFlatQuestionRefs().length,
+            cheating_attempts: tabViolations + keyViolations,
+            cheating_log: getViolationStateBundle(),
+            terminated: false,
+            evaluated_by_ai: false
+          })
+        })
+      ];
+
+      const results = await Promise.allSettled(requests);
+      let allRequestsSucceeded = true;
+      results.forEach(async (result, index) => {
+        if (result.status === 'rejected') {
+          allRequestsSucceeded = false;
+          console.warn('Final submit request failed:', index, result.reason);
+          return;
+        }
+        if (!result.value.ok) {
+          allRequestsSucceeded = false;
+          console.warn('Final submit request returned an error:', index, await result.value.text());
+        }
+      });
+      return allRequestsSucceeded;
+    }
+
+    async function sendAiTestCheckerPayload(status = 'submitted', terminationReason = '') {
+      if (!candidateRecord || !testSessionRecord) return;
+
+      const payload = {
+        session_id: testSessionRecord.id,
+        candidate_id: candidateRecord.id,
+        status,
+        session_status: status,
+        termination_reason: terminationReason,
+        candidate_name: candidateRecord.full_name || '',
+        candidate_email: candidateRecord.email || '',
+        department: candidateRecord.department || '',
+        designation: candidateRecord.designation || ''
+      };
+
+      try {
+        const response = await fetch(AI_TEST_CHECKER_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error('AI test checker webhook failed');
+        }
+      } catch (error) {
+        console.warn('JSON AI checker request failed; sending no-cors fallback:', error);
+        await fetch(AI_TEST_CHECKER_WEBHOOK_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+    }
+
+    function saveCurrentTextAnswer() {
+      if (currentSection !== 'mcq') {
+        answers[currentSection][currentQuestionIndex] = answerTextarea.value;
+        saveProgressLocally();
+        scheduleProgressSync();
+        saveAnswer(currentSection, currentQuestionIndex).catch(() => {});
+        updateNavigationState();
+        updateProgress();
+      }
+    }
+
+    function getSectionOrder() {
+      return ['mcq', 'short', 'long'];
+    }
+
+    function getFlatQuestionRefs() {
+      return getSectionOrder().flatMap(section =>
+        questions[section].map((_, index) => ({ section, index }))
+      );
+    }
+
+    function isQuestionAnswered(section, index) {
+      if (section === 'mcq') return answers.mcq[index] !== null;
+      return Boolean((answers[section][index] || '').trim());
+    }
+
+    function isCurrentQuestionAnswered() {
+      return isQuestionAnswered(currentSection, currentQuestionIndex);
+    }
+
+    function getCurrentFlatIndex() {
+      return getFlatQuestionRefs().findIndex(
+        ref => ref.section === currentSection && ref.index === currentQuestionIndex
+      );
+    }
+
+    function getFirstUnansweredFlatIndex() {
+      const flatQuestions = getFlatQuestionRefs();
+      const firstUnanswered = flatQuestions.findIndex(
+        ref => !isQuestionAnswered(ref.section, ref.index)
+      );
+      return firstUnanswered === -1 ? flatQuestions.length : firstUnanswered;
+    }
+
+    function canNavigateToQuestion(section, index) {
+      const targetIndex = getFlatQuestionRefs().findIndex(
+        ref => ref.section === section && ref.index === index
+      );
+      return targetIndex !== -1 && targetIndex <= getFirstUnansweredFlatIndex();
+    }
+
+    function areAllQuestionsAnswered() {
+      return getFirstUnansweredFlatIndex() === getFlatQuestionRefs().length;
+    }
+
+    function isLastQuestion() {
+      return getCurrentFlatIndex() === getFlatQuestionRefs().length - 1;
+    }
+
+    function updateControlState() {
+      const currentAnswered = isCurrentQuestionAnswered();
+      saveNextBtn.disabled = !currentAnswered || isLastQuestion() || testSubmitted;
+      submitTestBtn.disabled = !areAllQuestionsAnswered() || remainingTime <= 0 || testSubmitted;
+      saveNextBtn.classList.toggle('opacity-30', saveNextBtn.disabled);
+      saveNextBtn.classList.toggle('cursor-not-allowed', saveNextBtn.disabled);
+      submitTestBtn.classList.toggle('opacity-30', submitTestBtn.disabled);
+      submitTestBtn.classList.toggle('cursor-not-allowed', submitTestBtn.disabled);
+    }
+
+    // =====================
+    // LOGIN HANDLING
+    // =====================
+    togglePasswordBtn.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+
+      try {
+        candidateRecord = await authenticateCandidate(username, password);
+        await loadAssignedQuestions(candidateRecord.batch_id);
+        if (!getFlatQuestionRefs().length) {
+          throw new Error('No questions assigned to this candidate');
+        }
+        loginError.classList.add('hidden');
+        const existingSession = await fetchExistingInProgressSession();
+        if (existingSession) {
+          testSessionRecord = existingSession;
+          remainingTime = calculateSessionRemainingTime(existingSession);
+          timerDisplay.textContent = formatTime(remainingTime);
+          hydrateProgressFromSession();
+          startTest();
+          return;
+        }
+        showScreen('rules');
+      } catch (error) {
+        loginError.textContent = error.message || 'Invalid credentials. Please try again.';
+        loginError.classList.remove('hidden');
+        loginError.style.opacity = '1';
+      }
+    });
+
+    // =====================
+    // RULES HANDLING
+    // =====================
+    agreeCheckbox.addEventListener('change', () => {
+      startTestBtn.disabled = !agreeCheckbox.checked;
+    });
+
+    startTestBtn.addEventListener('click', async () => {
+      if (!agreeCheckbox.checked) return;
+
+      try {
+        startTestBtn.disabled = true;
+        startTestBtn.textContent = 'Starting...';
+        await createTestSession();
+        hydrateProgressFromSession();
+        await fetch(`${SUPABASE_URL}/rest/v1/candidates?id=eq.${encodeURIComponent(candidateRecord.id)}`, {
+          method: 'PATCH',
+          headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ status: 'in_progress' })
+        });
+        startTest();
+      } catch {
+        startTestBtn.disabled = false;
+        startTestBtn.textContent = 'Continue to Test';
+        showAlert('Unable to start test session. Please try again.');
+      }
+    });
+
+    // =====================
+    // TEST FUNCTIONALITY
+    // =====================
+    function startTest() {
+      showScreen('test');
+      initQuestionNav();
+      updateSectionVisibility();
+      renderQuestion();
+      startTimer();
+      setupAntiCheat();
+      saveProgressLocally();
+      scheduleProgressSync();
+    }
+
+    function initQuestionNav() {
+      const mcqGrid = document.getElementById('mcqGrid');
+      const shortGrid = document.getElementById('shortGrid');
+      const longGrid = document.getElementById('longGrid');
+
+      mcqGrid.innerHTML = '';
+      for (let i = 0; i < questions.mcq.length; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'question-nav-btn';
+        btn.textContent = i + 1;
+        btn.addEventListener('click', () => {
+          if (canNavigateToQuestion('mcq', i)) navigateToQuestion('mcq', i);
+          else showAlert('Please answer questions in sequence before moving ahead.');
+        });
+        mcqGrid.appendChild(btn);
+      }
+
+      shortGrid.innerHTML = '';
+      for (let i = 0; i < questions.short.length; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'question-nav-btn';
+        btn.textContent = i + 1;
+        btn.addEventListener('click', () => {
+          if (canNavigateToQuestion('short', i)) navigateToQuestion('short', i);
+          else showAlert('Please answer questions in sequence before moving ahead.');
+        });
+        shortGrid.appendChild(btn);
+      }
+
+      longGrid.innerHTML = '';
+      for (let i = 0; i < questions.long.length; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'question-nav-btn';
+        btn.textContent = i + 1;
+        btn.addEventListener('click', () => {
+          if (canNavigateToQuestion('long', i)) navigateToQuestion('long', i);
+          else showAlert('Please answer questions in sequence before moving ahead.');
+        });
+        longGrid.appendChild(btn);
+      }
+
+      updateNavigationState();
+    }
+
+    function navigateToQuestion(section, index) {
+      if (!canNavigateToQuestion(section, index)) {
+        showAlert('Please answer questions in sequence before moving ahead.');
+        return;
+      }
+
+      saveCurrentTextAnswer();
+      currentSection = section;
+      currentQuestionIndex = index;
+      
+      sectionTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.section === section));
+
+      document.getElementById('mcqNav').classList.toggle('hidden', section !== 'mcq');
+      document.getElementById('shortNav').classList.toggle('hidden', section !== 'short');
+      document.getElementById('longNav').classList.toggle('hidden', section !== 'long');
+
+      renderQuestion();
+      updateNavigationState();
+      saveProgressLocally();
+      scheduleProgressSync();
+    }
+
+    function renderQuestion() {
+      const questionData = questions[currentSection][currentQuestionIndex];
+      const sectionLabel = currentSection === 'mcq' ? 'MCQ' : currentSection === 'short' ? 'Short Question' : 'Long Question';
+      questionLabel.textContent = `${sectionLabel} ${currentQuestionIndex + 1}`;
+
+      questionMarks.textContent = currentSection === 'mcq' ? '1 Mark' : `${questionData.marks} Marks`;
+      questionText.textContent = questionData.question;
+
+      if (currentSection === 'mcq') {
+        mcqOptions.classList.remove('hidden');
+        textAnswer.classList.add('hidden');
+        renderMCQOptions(questionData);
+      } else {
+        mcqOptions.classList.add('hidden');
+        textAnswer.classList.remove('hidden');
+        answerTextarea.value = answers[currentSection][currentQuestionIndex] || '';
+        updateWordCount();
+      }
+
+      prevBtn.style.visibility = (currentSection === 'mcq' && currentQuestionIndex === 0) ? 'hidden' : 'visible';
+      updateControlState();
+    }
+
+    function renderMCQOptions(questionData) {
+      mcqOptions.innerHTML = '';
+      const labels = ['A', 'B', 'C', 'D'];
+      
+      questionData.options.forEach((option, index) => {
+        const isSelected = answers.mcq[currentQuestionIndex] === index;
+        const optionDiv = document.createElement('div');
+        optionDiv.className = `option-card rounded-xl p-4 flex items-center gap-4 ${isSelected ? 'selected' : ''}`;
+        optionDiv.innerHTML = `
+          <input type="radio" name="mcqOption" class="option-radio" ${isSelected ? 'checked' : ''}>
+          <span class="text-xs font-semibold text-[var(--muted)] bg-[var(--bg-secondary)] px-2 py-1 rounded">${labels[index]}</span>
+          <span class="flex-1">${option}</span>
+        `;
+        optionDiv.addEventListener('click', () => selectMCQOption(index));
+        mcqOptions.appendChild(optionDiv);
+      });
+    }
+
+    function selectMCQOption(index) {
+      answers.mcq[currentQuestionIndex] = index;
+      renderMCQOptions(questions.mcq[currentQuestionIndex]);
+      saveProgressLocally();
+      scheduleProgressSync();
+      saveAnswer('mcq', currentQuestionIndex).catch(() => {});
+      updateNavigationState();
+      updateProgress();
+    }
+
+    function updateNavigationState() {
+      const mcqButtons = document.querySelectorAll('#mcqGrid .question-nav-btn');
+      mcqButtons.forEach((btn, i) => {
+        btn.classList.remove('answered', 'current');
+        if (answers.mcq[i] !== null) btn.classList.add('answered');
+        if (currentSection === 'mcq' && i === currentQuestionIndex) btn.classList.add('current');
+        btn.disabled = !canNavigateToQuestion('mcq', i);
+      });
+
+      const shortButtons = document.querySelectorAll('#shortGrid .question-nav-btn');
+      shortButtons.forEach((btn, i) => {
+        btn.classList.remove('answered', 'current');
+        if (answers.short[i].trim()) btn.classList.add('answered');
+        if (currentSection === 'short' && i === currentQuestionIndex) btn.classList.add('current');
+        btn.disabled = !canNavigateToQuestion('short', i);
+      });
+
+      const longButtons = document.querySelectorAll('#longGrid .question-nav-btn');
+      longButtons.forEach((btn, i) => {
+        btn.classList.remove('answered', 'current');
+        if (answers.long[i].trim()) btn.classList.add('answered');
+        if (currentSection === 'long' && i === currentQuestionIndex) btn.classList.add('current');
+        btn.disabled = !canNavigateToQuestion('long', i);
+      });
+
+      updateControlState();
+    }
+
+    function updateProgress() {
+      let answered = 0;
+      answered += answers.mcq.filter(a => a !== null).length;
+      answered += answers.short.filter(a => a.trim()).length;
+      answered += answers.long.filter(a => a.trim()).length;
+      
+      const total = questions.mcq.length + questions.short.length + questions.long.length;
+      progressText.textContent = `${answered}/${total}`;
+      progressFill.style.width = `${(answered / total) * 100}%`;
+      updateControlState();
+    }
+
+    function updateWordCount() {
+      const text = answerTextarea.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      wordCount.textContent = words;
+    }
+
+    answerTextarea.addEventListener('input', () => {
+      answers[currentSection][currentQuestionIndex] = answerTextarea.value;
+      saveProgressLocally();
+      scheduleProgressSync();
+      updateWordCount();
+      updateNavigationState();
+      updateProgress();
+      window.clearTimeout(answerTextarea.dataset.saveTimer);
+      answerTextarea.dataset.saveTimer = window.setTimeout(() => {
+        saveAnswer(currentSection, currentQuestionIndex).catch(() => {});
+      }, 300);
+    });
+
+    // =====================
+    // NAVIGATION BUTTONS
+    // =====================
+    prevBtn.addEventListener('click', () => {
+      saveCurrentTextAnswer();
+      
+      if (currentSection === 'mcq' && currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+      } else if (currentSection === 'short') {
+        if (currentQuestionIndex > 0) currentQuestionIndex--;
+        else { currentSection = 'mcq'; currentQuestionIndex = questions.mcq.length - 1; updateSectionVisibility(); }
+      } else if (currentSection === 'long') {
+        if (currentQuestionIndex > 0) currentQuestionIndex--;
+        else { currentSection = 'short'; currentQuestionIndex = questions.short.length - 1; updateSectionVisibility(); }
+      }
+      renderQuestion();
+      updateNavigationState();
+      saveProgressLocally();
+      scheduleProgressSync();
+    });
+
+    saveNextBtn.addEventListener('click', () => {
+      saveCurrentTextAnswer();
+
+      if (!isCurrentQuestionAnswered()) {
+        showAlert('Answer the current question before moving to the next one.');
+        updateControlState();
+        return;
+      }
+
+      if (isLastQuestion()) {
+        updateControlState();
+        return;
+      }
+      
+      if (currentSection === 'mcq') {
+        if (currentQuestionIndex < questions.mcq.length - 1) currentQuestionIndex++;
+        else { currentSection = 'short'; currentQuestionIndex = 0; updateSectionVisibility(); }
+      } else if (currentSection === 'short') {
+        if (currentQuestionIndex < questions.short.length - 1) currentQuestionIndex++;
+        else { currentSection = 'long'; currentQuestionIndex = 0; updateSectionVisibility(); }
+      } else if (currentSection === 'long') {
+        if (currentQuestionIndex < questions.long.length - 1) currentQuestionIndex++;
+      }
+      renderQuestion();
+      updateNavigationState();
+      saveProgressLocally();
+      scheduleProgressSync();
+    });
+
+    function updateSectionVisibility() {
+      sectionTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.section === currentSection));
+      document.getElementById('mcqNav').classList.toggle('hidden', currentSection !== 'mcq');
+      document.getElementById('shortNav').classList.toggle('hidden', currentSection !== 'short');
+      document.getElementById('longNav').classList.toggle('hidden', currentSection !== 'long');
+    }
+
+    sectionTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        saveCurrentTextAnswer();
+        const targetSection = tab.dataset.section;
+
+        if (!canNavigateToQuestion(targetSection, 0)) {
+          showAlert('Please answer questions in sequence before moving ahead.');
+          updateControlState();
+          return;
+        }
+
+        currentSection = targetSection;
+        currentQuestionIndex = 0;
+        updateSectionVisibility();
+        renderQuestion();
+        updateNavigationState();
+        saveProgressLocally();
+        scheduleProgressSync();
+      });
+    });
+
+    // =====================
+    // TIMER
+    // =====================
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        remainingTime--;
+        timerDisplay.textContent = formatTime(remainingTime);
+        saveProgressLocally();
+        if (remainingTime > 0 && remainingTime % 15 === 0) {
+          scheduleProgressSync();
+        }
+
+        if (remainingTime <= 300 && remainingTime > 60) {
+          timerDisplay.classList.add('warning');
+          timerDisplay.classList.remove('danger');
+        } else if (remainingTime <= 60) {
+          timerDisplay.classList.add('danger');
+          timerDisplay.classList.remove('warning');
+        }
+
+        updateControlState();
+
+        if (remainingTime <= 0) submitTest(true);
+      }, 1000);
+    }
+
+    // =====================
+    // SUBMIT TEST
+    // =====================
+    submitTestBtn.addEventListener('pointerdown', () => suppressFocusViolations(3500), true);
+    submitTestBtn.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        suppressFocusViolations(3500);
+      }
+    });
+    submitConfirmOverlay.addEventListener('pointerdown', () => suppressFocusViolations(3500), true);
+
+    submitTestBtn.addEventListener('click', () => {
+      suppressFocusViolations(3500);
+      saveCurrentTextAnswer();
+
+      if (remainingTime <= 0) {
+        submitTest(true);
+        return;
+      }
+
+      if (!areAllQuestionsAnswered()) {
+        showAlert('You can submit only after attempting all questions.');
+        updateControlState();
+        return;
+      }
+
+      const mins = Math.floor(remainingTime / 60);
+      const secs = remainingTime % 60;
+      const timeString = `${mins} minute(s) and ${secs} second(s)`;
+
+      const confirmationMessage = remainingTime > 0 
+        ? `You still have ${timeString} remaining. Are you sure you want to submit?` 
+        : 'Time is up! Submit your test now.';
+
+      showSubmitConfirmation(confirmationMessage);
+    });
+
+    cancelSubmitBtn.addEventListener('click', hideSubmitConfirmation);
+    confirmSubmitBtn.addEventListener('click', () => {
+      hideSubmitConfirmation();
+      submitTest();
+    });
+
+    async function submitTest(isAutomaticTimeout = false) {
+      if (testSubmitted) return;
+      testSubmitted = true;
+      hideSubmitConfirmation();
+      saveCurrentTextAnswer();
+      clearLockout();
+      clearInterval(timerInterval);
+      updateControlState();
+
+      let finalSessionSaved = false;
+      try {
+        await flushProgressState();
+        await Promise.allSettled(
+          getFlatQuestionRefs()
+            .filter(ref => isQuestionAnswered(ref.section, ref.index))
+            .map(ref => saveAnswer(ref.section, ref.index))
+        );
+        finalSessionSaved = await finalizeTestSession();
+        if (finalSessionSaved) {
+          clearProgressBackup();
+        }
+      } catch {
+        showAlert('Some final test data could not be saved, but the test has been concluded.');
+      }
+
+      try {
+        await sendAiTestCheckerPayload();
+      } catch (error) {
+        console.warn('AI test checker webhook could not be called:', error);
+      }
+
+      showScreen('completion');
+      
+      history.pushState(null, null, location.href);
+      window.onpopstate = function() { history.pushState(null, null, location.href); };
+    }
+
+    // =====================
+    // ANTI-CHEAT MEASURES
+    // =====================
+    async function logCheatingViolation(eventType, eventDetail, warningNumber) {
+      if (!candidateRecord || !testSessionRecord || testSubmitted || isTerminatingTest) return;
+      const stateBundle = getViolationStateBundle();
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/cheating_logs`, {
+          method: 'POST',
+          headers: supabaseHeaders({
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal'
+          }),
+          body: JSON.stringify({
+            session_id: testSessionRecord.id,
+            candidate_id: candidateRecord.id,
+            event_type: eventType,
+            event_detail: `${eventDetail} | tab_violations_count=${stateBundle.tab_violations_count}; key_violations_count=${stateBundle.key_violations_count}`,
+            warning_number: warningNumber
+          })
+        });
+
+        if (!response.ok) {
+          console.warn('Cheating log could not be saved:', await response.text());
+        }
+      } catch (error) {
+        console.warn('Cheating log request failed:', error);
+      }
+    }
+
+    function getTabLockoutPenalty(violationCount) {
+      const penalties = {
+        1: {
+          seconds: 45,
+          message: "Don't switch the tab again otherwise your test will be terminated and submitted."
+        }
+      };
+
+      return penalties[violationCount] || null;
+    }
+
+    function clearLockout() {
+      if (lockoutInterval) {
+        clearInterval(lockoutInterval);
+        lockoutInterval = null;
+      }
+      isLockoutActive = false;
+      testViewport.classList.remove('locked');
+      lockoutOverlay.classList.remove('show');
+    }
+
+    function applyTabLockout(seconds, message) {
+      isLockoutActive = true;
+      let remainingLockoutSeconds = seconds;
+      testViewport.classList.add('locked');
+      lockoutOverlay.classList.add('show');
+      lockoutMessage.textContent = message;
+      lockoutTimer.textContent = formatTime(remainingLockoutSeconds);
+
+      if (lockoutInterval) {
+        clearInterval(lockoutInterval);
+      }
+
+      lockoutInterval = setInterval(() => {
+        remainingLockoutSeconds -= 1;
+        lockoutTimer.textContent = formatTime(Math.max(remainingLockoutSeconds, 0));
+
+        if (remainingLockoutSeconds <= 0 || testSubmitted) {
+          clearLockout();
+        }
+      }, 1000);
+    }
+
+    function handleTabViolation(eventType, eventDetail) {
+      if (!candidateRecord || !testSessionRecord || testSubmitted || isTerminatingTest || isLockoutActive) return;
+
+      const now = Date.now();
+      if (now - lastTabViolationAt < 1500) return;
+      lastTabViolationAt = now;
+
+      tabViolations += 1;
+      logCheatingViolation(eventType, eventDetail, tabViolations);
+
+      if (tabViolations >= 2) {
+        terminateTestForCheating('Excessive tab switching');
+        return;
+      }
+
+      const penalty = getTabLockoutPenalty(tabViolations);
+      if (penalty) {
+        applyTabLockout(penalty.seconds, penalty.message);
+      }
+    }
+
+    function handleKeyViolation(eventType, eventDetail) {
+      if (!candidateRecord || !testSessionRecord || testSubmitted || isTerminatingTest) return;
+
+      keyViolations += 1;
+      logCheatingViolation(eventType, eventDetail, keyViolations);
+      showAlert('Warning: restricted action detected. This incident has been logged.');
+    }
+
+    async function terminateTestForCheating(reason = 'Excessive tab switching') {
+      if (!candidateRecord || !testSessionRecord || testSubmitted || isTerminatingTest) return;
+
+      isTerminatingTest = true;
+      testSubmitted = true;
+      clearLockout();
+      clearInterval(timerInterval);
+      updateControlState();
+
+      try {
+        await flushProgressState();
+        await Promise.allSettled(
+          getFlatQuestionRefs()
+            .filter(ref => isQuestionAnswered(ref.section, ref.index))
+            .map(ref => saveAnswer(ref.section, ref.index))
+        );
+        await Promise.allSettled([
+          fetch(`${SUPABASE_URL}/rest/v1/test_sessions?id=eq.${encodeURIComponent(testSessionRecord.id)}`, {
+            method: 'PATCH',
+            headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({
+              status: 'terminated',
+              termination_reason: reason,
+              time_remaining_seconds: Math.max(remainingTime, 0),
+              progress_state: null
+            })
+          }),
+          fetch(`${SUPABASE_URL}/rest/v1/candidates?id=eq.${encodeURIComponent(candidateRecord.id)}`, {
+            method: 'PATCH',
+            headers: supabaseHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({
+              status: 'terminated',
+              is_active: false
+            })
+          }),
+          fetch(`${SUPABASE_URL}/rest/v1/results`, {
+            method: 'POST',
+            headers: supabaseHeaders({
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            }),
+            body: JSON.stringify({
+              session_id: testSessionRecord.id,
+              candidate_id: candidateRecord.id,
+              total_questions: getFlatQuestionRefs().length,
+              cheating_attempts: tabViolations + keyViolations,
+              cheating_log: getViolationStateBundle(),
+              terminated: true,
+              termination_reason: reason,
+              evaluated_by_ai: false
+            })
+          })
+        ]);
+        clearProgressBackup();
+      } catch (error) {
+        console.warn('Termination update could not be fully saved:', error);
+      }
+
+      try {
+        await sendAiTestCheckerPayload('terminated', reason);
+      } catch (error) {
+        console.warn('AI test checker termination payload could not be sent:', error);
+      }
+
+      const completionTitle = screens.completion.querySelector('h1');
+      const completionMessage = screens.completion.querySelector('p.text-lg');
+      const completionStatus = screens.completion.querySelector('.flex.items-center.justify-center span');
+      if (completionTitle) completionTitle.textContent = 'Test Terminated';
+      if (completionMessage) completionMessage.textContent = `Test terminated: ${reason}.`;
+      if (completionStatus) completionStatus.textContent = 'Session terminated';
+      showScreen('completion');
+    }
+
+    function setupAntiCheat() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && !testSubmitted) {
+          handleTabViolation('tab_switch', 'Browser tab became hidden');
+        } else if (!document.hidden) {
+          suppressFocusViolations(800);
+        }
+      });
+
+      ['copy', 'cut', 'paste'].forEach(evt => {
+        document.addEventListener(evt, (e) => {
+          e.preventDefault();
+          const eventTypes = { copy: 'copy_attempt', cut: 'cut_attempt', paste: 'paste_attempt' };
+          handleKeyViolation(eventTypes[evt], `${evt} event blocked`);
+        });
+      });
+
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        handleKeyViolation('right_click', 'Right-click context menu blocked');
+      });
+
+      window.addEventListener('blur', () => {
+        if (blurCheckTimeout) clearTimeout(blurCheckTimeout);
+        blurCheckTimeout = setTimeout(() => {
+          if (shouldIgnoreFocusViolation() || document.hidden || document.hasFocus()) return;
+          handleTabViolation('window_blur', 'Window lost focus during test');
+        }, 1500);
+      });
+
+      window.addEventListener('focus', () => {
+        suppressFocusViolations(800);
+        if (blurCheckTimeout) {
+          clearTimeout(blurCheckTimeout);
+          blurCheckTimeout = null;
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (testSubmitted) return;
+        const key = String(e.key || '');
+        const isModifierOnly = ['Alt', 'Control', 'Meta', 'Shift'].includes(key);
+        const isModifierCombo = (e.altKey || e.ctrlKey || e.metaKey) && !isModifierOnly;
+        const isFunctionBlocked = e.key === 'F12';
+        if (isModifierCombo || isFunctionBlocked) {
+          e.preventDefault();
+          handleKeyViolation(isFunctionBlocked ? 'devtools_open' : 'keyboard_shortcut', `Blocked shortcut: ${key}`);
+        }
+        if (e.key === 'Backspace' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
+      });
+
+      window.addEventListener('beforeunload', (e) => { if (!testSubmitted) { e.preventDefault(); e.returnValue = ''; } });
+    }
+
+    // =====================
+    // INITIALIZE
+    // =====================
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.animate-slide-up').forEach(el => el.style.opacity = '1');
+    });
+  </script>
+</body>
+</html>

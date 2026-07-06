@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment and generated runtime config
+.env
+.env.*
+!.env.example
+public/app-config.js
+
+# Local tunnel/runtime logs
+work/
+outputs/
+*.log
+*.out.txt
+
+# Local Codex/MagicPath agent tooling
+.agents/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

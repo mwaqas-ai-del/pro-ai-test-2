@@ -163,7 +163,7 @@ const aiTestCheckerWebhookUrl = getRequiredEnv('VITE_AI_TEST_CHECKER_WEBHOOK_URL
 const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL');
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.37';
+const appVersion = '1.38';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },

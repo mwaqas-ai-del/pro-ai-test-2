@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
     : {}
 
   return {
+    base: '/pro-ai-test-2/',
     plugins: [react()],
     server: {
       host: true,

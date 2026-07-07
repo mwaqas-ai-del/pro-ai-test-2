@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Bell,
+  Ban,
   ChevronDown,
   CheckCircle,
   Clock3,
@@ -49,6 +50,12 @@ const navItems = [
     label: 'Test Profiles',
     icon: Users,
     description: 'Configure candidate groups, test assignments, and access.',
+  },
+  {
+    id: 'access-approval',
+    label: 'Access Approval',
+    icon: ShieldCheck,
+    description: 'Review and approve internal registration requests for HR and operations users.',
   },
   {
     id: 'settings',
@@ -162,8 +169,9 @@ const testProfileSenderWebhookUrl = getRequiredEnv('VITE_TEST_PROFILE_SENDER_WEB
 const aiTestCheckerWebhookUrl = getRequiredEnv('VITE_AI_TEST_CHECKER_WEBHOOK_URL');
 const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL');
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
+const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.39';
+const appVersion = '1.40';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -459,6 +467,59 @@ function formatBatchDate(createdAt) {
     month: 'short',
     year: 'numeric',
   });
+}
+
+function formatApprovalDate(createdAt) {
+  if (!createdAt) {
+    return 'Date unavailable';
+  }
+
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return 'Date unavailable';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getApprovalDisplayName(row) {
+  return row.full_name || row.name || row.profile_name || row.email?.split('@')[0] || 'Pending User';
+}
+
+function getInitials(name) {
+  return String(name || 'User')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'U';
+}
+
+function normalizePendingApprovals(payload) {
+  const rows = Array.isArray(payload)
+    ? payload
+    : payload?.users || payload?.approvals || payload?.data || payload?.pending_users || [];
+
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row?.email)
+    .map((row) => ({
+      id: row.id || row.user_id || row.email,
+      fullName: getApprovalDisplayName(row),
+      email: row.email,
+      createdAt: row.created_at || row.createdAt || row.registration_date || row.inserted_at || '',
+      status: row.status || 'pending',
+    }))
+    .sort((firstRow, secondRow) => {
+      const firstTime = new Date(firstRow.createdAt || 0).getTime();
+      const secondTime = new Date(secondRow.createdAt || 0).getTime();
+      return secondTime - firstTime;
+    });
 }
 
 function formatDesignationLabel(designation) {
@@ -832,12 +893,13 @@ async function sendTestProfilePayload(payload) {
   }
 }
 
-async function sendAuthEnginePayload(payload) {
+async function sendAuthEnginePayload(payload, { includeAdminSecret = false } = {}) {
   const response = await fetch(authEngineWebhookUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      ...(includeAdminSecret ? { 'X-Admin-Secret': authAdminSecret } : {}),
     },
     body: JSON.stringify(payload),
   });
@@ -1099,6 +1161,11 @@ function App() {
     assignedBatch: '',
     testDurationMinutes: defaultTestDurationMinutes,
   });
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [lastApprovalSync, setLastApprovalSync] = useState(null);
+  const approvalRefreshInFlight = useRef(false);
   const [sendingResultCandidateIds, setSendingResultCandidateIds] = useState([]);
   const [resultOverview, setResultOverview] = useState({
     isOpen: false,
@@ -1220,12 +1287,37 @@ function App() {
 
     fetchDashboardData();
     fetchQuestionBatches();
+    fetchPendingApprovals({ silent: true });
 
     const storedBatchId = window.localStorage.getItem(activeQuestionBatchStorageKey);
     if (storedBatchId) {
       fetchQuestionsForBatch(storedBatchId, null, { showLoadedToast: false });
     }
   }, [isAdminAuthenticated]);
+
+  useEffect(() => {
+    if (!isAdminAuthenticated || activeSection !== 'access-approval') {
+      return undefined;
+    }
+
+    fetchPendingApprovals();
+
+    const refreshApprovalsSilently = () => {
+      if (!document.hidden) {
+        fetchPendingApprovals({ silent: true });
+      }
+    };
+    const approvalRefreshTimer = window.setInterval(refreshApprovalsSilently, 5000);
+
+    window.addEventListener('focus', refreshApprovalsSilently);
+    document.addEventListener('visibilitychange', refreshApprovalsSilently);
+
+    return () => {
+      window.clearInterval(approvalRefreshTimer);
+      window.removeEventListener('focus', refreshApprovalsSilently);
+      document.removeEventListener('visibilitychange', refreshApprovalsSilently);
+    };
+  }, [activeSection, isAdminAuthenticated]);
 
   useEffect(() => {
     if (!isAdminAuthenticated) {
@@ -1802,6 +1894,78 @@ function App() {
         'This will permanently delete the loaded batch and all questions inside it from Supabase.',
       confirmLabel: 'Delete Batch',
       action: deleteLoadedQuestionBatch,
+    });
+  }
+
+  async function fetchPendingApprovals({ silent = false } = {}) {
+    if (approvalRefreshInFlight.current) {
+      return;
+    }
+
+    approvalRefreshInFlight.current = true;
+    if (!silent) {
+      setIsLoadingApprovals(true);
+    }
+    setApprovalError('');
+
+    try {
+      const response = await sendAuthEnginePayload(
+        { action: 'get_pending_approvals' },
+        { includeAdminSecret: true },
+      );
+      setPendingApprovals(normalizePendingApprovals(response));
+      setLastApprovalSync(new Date());
+    } catch (error) {
+      setApprovalError(error.message || 'Unable to fetch pending approval requests.');
+      if (!silent) {
+        showToast({
+          type: 'error',
+          title: 'Approval fetch failed',
+          message: error.message || 'Unable to fetch pending approval requests.',
+        });
+      }
+    } finally {
+      approvalRefreshInFlight.current = false;
+      if (!silent) {
+        setIsLoadingApprovals(false);
+      }
+    }
+  }
+
+  async function approvePendingAccess(row) {
+    const response = await sendAuthEnginePayload(
+      { action: 'approve_user', user_email: row.email },
+      { includeAdminSecret: true },
+    );
+
+    if (response?.success === false) {
+      throw new Error(response.message || 'Approval request failed.');
+    }
+
+    setPendingApprovals((currentRows) =>
+      currentRows.filter((currentRow) => currentRow.email !== row.email),
+    );
+    showToast({
+      type: 'success',
+      title: 'Access approved',
+      message: `${row.email} has been authorized.`,
+    });
+  }
+
+  function requestApproveAccess(row) {
+    setConfirmation({
+      title: 'Approve access?',
+      message: `Are you sure you want to authorize access for ${row.email}?`,
+      confirmLabel: 'Approve Access',
+      action: () => approvePendingAccess(row),
+    });
+  }
+
+  function handleRejectApproval(row) {
+    showToast({
+      type: 'warning',
+      title: 'Reject action pending',
+      message: `${row.email} was not changed. Backend reject action has not been specified yet.`,
     });
   }
 
@@ -3148,6 +3312,16 @@ function updateProfileForm(field, value) {
                   onUpdateForm={updateProfileForm}
                   profileError={profileError}
                   profiles={profiles}
+                />
+              ) : activeSection === 'access-approval' ? (
+                <AccessApprovalSection
+                  error={approvalError}
+                  isLoading={isLoadingApprovals}
+                  lastSyncedAt={lastApprovalSync}
+                  onApprove={requestApproveAccess}
+                  onRefresh={() => fetchPendingApprovals()}
+                  onReject={handleRejectApproval}
+                  pendingUsers={pendingApprovals}
                 />
               ) : activeSection === 'test-portal' ? (
                 <TestPortalSection />
@@ -7942,6 +8116,136 @@ function TestPortalSection() {
           This is a secure examination portal. All activities are monitored.
         </p>
       </div>
+    </section>
+  );
+}
+
+function AccessApprovalSection({
+  error,
+  isLoading,
+  lastSyncedAt,
+  onApprove,
+  onRefresh,
+  onReject,
+  pendingUsers,
+}) {
+  const pendingCount = pendingUsers.length;
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#cfc4c5] bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1b1b1b] text-white">
+              <ShieldCheck className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="app-section-heading text-2xl font-black text-[#1b1c1c]">
+                Access Approval Requests
+              </h2>
+              <p className="mt-1 text-sm font-medium text-[#4c4546]">
+                {pendingCount} pending account{pendingCount === 1 ? '' : 's'} awaiting HR review.
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[#7e7576]">
+            {lastSyncedAt ? `Last refresh ${formatApprovalDate(lastSyncedAt)}` : 'Waiting for first sync'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#cfc4c5] bg-white px-4 text-sm font-black text-[#1b1c1c] transition duration-200 hover:-translate-y-0.5 hover:bg-[#efeded] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+          Refresh Requests
+        </button>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="overflow-hidden rounded-xl border border-[#cfc4c5] bg-white shadow-sm">
+        <div className="grid grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] gap-4 border-b border-[#cfc4c5] bg-[#f5f3f3] px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#7e7576] max-xl:hidden">
+          <span>Full Name / Profile</span>
+          <span>Corporate Email</span>
+          <span>Registration Date</span>
+          <span>Current Status</span>
+          <span className="text-right">Actions</span>
+        </div>
+
+        {isLoading && pendingUsers.length === 0 ? (
+          <div className="space-y-3 p-5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-16 animate-pulse rounded-lg border border-[#dcd5d6] bg-[#f5f3f3]"
+              />
+            ))}
+          </div>
+        ) : pendingUsers.length === 0 ? (
+          <div className="p-8">
+            <EmptyState
+              icon={Inbox}
+              title="All caught up!"
+              message="No pending registration approvals."
+            />
+          </div>
+        ) : (
+          <div className="divide-y divide-[#cfc4c5]">
+            {pendingUsers.map((user) => (
+              <article
+                key={user.id}
+                className="grid gap-4 px-5 py-5 transition duration-200 hover:bg-[#f5f3f3] xl:grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] xl:items-center"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#efeded] text-sm font-black text-[#1b1c1c]">
+                    {getInitials(user.fullName)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[#1b1c1c]">{user.fullName}</p>
+                    <p className="mt-0.5 text-xs font-semibold text-[#7e7576]">Internal account</p>
+                  </div>
+                </div>
+
+                <p className="break-all text-sm font-semibold text-[#4c4546]">{user.email}</p>
+
+                <p className="text-sm font-semibold text-[#4c4546]">
+                  {formatApprovalDate(user.createdAt)}
+                </p>
+
+                <span className="inline-flex w-fit items-center rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700 ring-1 ring-orange-600/20">
+                  Pending HR Review
+                </span>
+
+                <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onApprove(user)}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                    Approve Access
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onReject(user)}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-700 transition duration-200 hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50"
+                  >
+                    <Ban className="h-4 w-4" aria-hidden="true" />
+                    Reject / Suspend
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

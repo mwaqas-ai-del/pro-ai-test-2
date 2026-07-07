@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.40';
+const appVersion = '1.41';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -187,6 +187,34 @@ const adminThemeStorageKey = 'probation-test-admin-theme';
 const adminSessionStorageKey = 'probation-test-admin-session';
 const activeQuestionBatchStorageKey = 'probation-test-active-batch-id';
 const dashboardRefreshIntervalMs = 3000;
+const defaultAdminSectionId = 'dashboard';
+
+function getValidAdminSectionId(sectionId) {
+  const normalizedSectionId = String(sectionId || '').replace(/^\/+/, '');
+  const matchingSection = navItems.find(
+    (item) => item.id === normalizedSectionId && !item.disabled,
+  );
+
+  return matchingSection?.id || defaultAdminSectionId;
+}
+
+function getSectionIdFromHash(hash = window.location.hash) {
+  return getValidAdminSectionId(String(hash || '').replace(/^#\/?/, ''));
+}
+
+function getInitialAdminSection() {
+  return getSectionIdFromHash(window.location.hash);
+}
+
+function updateAdminSectionHash(sectionId) {
+  const nextSectionId = getValidAdminSectionId(sectionId);
+  const nextHash = `#/${nextSectionId}`;
+
+  if (window.location.hash !== nextHash) {
+    window.history.pushState(null, '', nextHash);
+  }
+}
+
 const batchSummaries = {
   'Amazon - 30 Questions': {
     title: 'Amazon Batch - 30 Questions',
@@ -1112,7 +1140,7 @@ function App() {
   const [adminTheme, setAdminTheme] = useState(
     () => window.localStorage.getItem(adminThemeStorageKey) || 'light',
   );
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState(getInitialAdminSection);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
@@ -1195,6 +1223,20 @@ function App() {
       document.documentElement.style.colorScheme = 'light';
     };
   }, [adminTheme]);
+
+  useEffect(() => {
+    function handleHashChange() {
+      setActiveSection(getSectionIdFromHash());
+    }
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
   const departments = useMemo(
     () => ['All Departments', ...Array.from(new Set(candidates.map((candidate) => candidate.department)))],
     [candidates],
@@ -3135,6 +3177,7 @@ function updateProfileForm(field, value) {
                       return;
                     }
 
+                    updateAdminSectionHash(item.id);
                     setActiveSection(item.id);
                     closeSidebar();
                   }}

@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.46';
+const appVersion = '1.47';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -610,7 +610,10 @@ function getValidTestDurationMinutes(value) {
 }
 
 function buildCandidatePortalLink(username, durationMinutes = defaultTestDurationMinutes) {
-  return `${window.location.origin}/portal-replica-007.html?username=${encodeURIComponent(username)}&duration=${encodeURIComponent(getValidTestDurationMinutes(durationMinutes))}`;
+  const appBasePath = import.meta.env.BASE_URL || '/';
+  const portalPath = `${appBasePath.replace(/\/?$/, '/')}portal-replica-007.html`;
+
+  return `${window.location.origin}${portalPath}?username=${encodeURIComponent(username)}&duration=${encodeURIComponent(getValidTestDurationMinutes(durationMinutes))}`;
 }
 
 function getTestDurationMinutesFromLink(testLink) {

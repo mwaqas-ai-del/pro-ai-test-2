@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.45';
+const appVersion = '1.46';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -3164,6 +3164,9 @@ function updateProfileForm(field, value) {
 
   const isDarkTheme = adminTheme === 'dark';
   const ThemeIcon = isDarkTheme ? Sun : Moon;
+  const currentAdminSession = getStoredAdminSession();
+  const currentAdminName = currentAdminSession?.label || currentAdminSession?.username || 'Admin User';
+  const currentAdminRole = formatAccountRole(currentAdminSession?.role);
 
   return (
     <div
@@ -3245,18 +3248,22 @@ function updateProfileForm(field, value) {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-white/10 pt-4">
-            <div className="flex items-center gap-3 px-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-white text-xs font-black text-[#1b1b1b]">
-                AD
+          <div className="mt-auto border-t border-white/15 pt-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.07] p-3 shadow-lg shadow-black/10">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#1b1b1b] shadow-sm">
+                  {getInitials(currentAdminName)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="app-display truncate text-sm font-black leading-5 text-white">
+                    {currentAdminName}
+                  </p>
+                  <p className="truncate text-[11px] font-semibold text-white/65">
+                    {currentAdminRole}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="app-display truncate text-xs font-semibold text-white">Super Admin</p>
-                <p className="truncate text-[10px] text-white/40">HR Administrator</p>
-              </div>
-            </div>
-            <div className="mt-4 px-2">
-              <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
+              <span className="mt-3 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white/70 shadow-sm">
                 Version {appVersion}
               </span>
             </div>

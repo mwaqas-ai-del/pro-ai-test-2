@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.49';
+const appVersion = '1.50';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -8388,7 +8388,7 @@ function AccessApprovalSection({
                     <button
                       type="button"
                       onClick={() => onReject(user)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-red-700"
+                      className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-red-200 bg-red-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-red-700"
                     >
                       <Ban className="h-4 w-4" aria-hidden="true" />
                       Disable / Suspend Access
@@ -8397,7 +8397,7 @@ function AccessApprovalSection({
                     <button
                       type="button"
                       onClick={() => onApprove(user)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
+                      className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
                     >
                       <CheckCircle className="h-4 w-4" aria-hidden="true" />
                       Restore & Approve Access
@@ -8407,7 +8407,7 @@ function AccessApprovalSection({
                       <button
                         type="button"
                         onClick={() => onApprove(user)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
+                        className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
                       >
                         <CheckCircle className="h-4 w-4" aria-hidden="true" />
                         Approve Access
@@ -8415,7 +8415,7 @@ function AccessApprovalSection({
                       <button
                         type="button"
                         onClick={() => onReject(user)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-700 transition duration-200 hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50"
+                        className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-700 transition duration-200 hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50"
                       >
                         <Ban className="h-4 w-4" aria-hidden="true" />
                         Reject / Suspend

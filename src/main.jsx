@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.47';
+const appVersion = '1.48';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -8314,7 +8314,7 @@ function AccessApprovalSection({
           </p>
         </div>
 
-        <div className="grid grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] gap-4 border-b border-[#cfc4c5] bg-[#f5f3f3] px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#7e7576] max-xl:hidden">
+        <div className="grid grid-cols-[1.15fr_1.85fr_1fr_0.85fr_1.15fr] gap-4 border-b border-[#cfc4c5] bg-[#f5f3f3] px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#7e7576] max-xl:hidden">
           <span>Full Name / Profile</span>
           <span>Corporate Email</span>
           <span>Registration Date</span>
@@ -8344,7 +8344,7 @@ function AccessApprovalSection({
             {visibleUsers.map((user) => (
               <article
                 key={user.id}
-                className="grid gap-4 px-5 py-5 transition duration-200 hover:bg-[#f5f3f3] xl:grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] xl:items-center"
+                className="grid gap-4 px-5 py-5 transition duration-200 hover:bg-[#f5f3f3] xl:grid-cols-[1.15fr_1.85fr_1fr_0.85fr_1.15fr] xl:items-center"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#efeded] text-sm font-black text-[#1b1c1c]">
@@ -8356,7 +8356,12 @@ function AccessApprovalSection({
                   </div>
                 </div>
 
-                <p className="break-all text-sm font-semibold text-[#4c4546]">{user.email}</p>
+                <p
+                  className="min-w-0 truncate whitespace-nowrap text-sm font-semibold text-[#4c4546]"
+                  title={user.email}
+                >
+                  {user.email}
+                </p>
 
                 <p className="text-sm font-semibold text-[#4c4546]">
                   {formatApprovalDate(user.createdAt)}

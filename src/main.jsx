@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.44';
+const appVersion = '1.45';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -1196,6 +1196,7 @@ function App() {
   const approvalRefreshInFlight = useRef(false);
   const approvedAccessEmailsRef = useRef(new Set());
   const rejectedPendingEmailsRef = useRef(new Set());
+  const disabledActiveEmailsRef = useRef(new Set());
   const [sendingResultCandidateIds, setSendingResultCandidateIds] = useState([]);
   const [resultOverview, setResultOverview] = useState({
     isOpen: false,
@@ -1958,11 +1959,13 @@ function App() {
       );
       const approvedEmails = approvedAccessEmailsRef.current;
       const rejectedPendingEmails = rejectedPendingEmailsRef.current;
+      const disabledActiveEmails = disabledActiveEmailsRef.current;
       setPendingApprovals(
         normalizePendingApprovals(response).filter(
           (row) =>
             !approvedEmails.has(row.email) &&
-            !(row.status === 'pending' && rejectedPendingEmails.has(row.email)),
+            !(row.status === 'pending' && rejectedPendingEmails.has(row.email)) &&
+            !(row.status === 'active' && disabledActiveEmails.has(row.email)),
         ),
       );
       setLastApprovalSync(new Date());
@@ -2025,22 +2028,33 @@ function App() {
       throw new Error(response.message || 'Reject request failed.');
     }
 
-    rejectedPendingEmailsRef.current.add(row.email);
+    if (row.status === 'active') {
+      disabledActiveEmailsRef.current.add(row.email);
+    } else {
+      rejectedPendingEmailsRef.current.add(row.email);
+    }
     setPendingApprovals((currentRows) =>
       currentRows.filter((currentRow) => currentRow.email !== row.email),
     );
     showToast({
       type: 'success',
-      title: 'Access rejected',
-      message: `${row.email} has been rejected and removed from the approval queue.`,
+      title: row.status === 'active' ? 'Access disabled' : 'Access rejected',
+      message:
+        row.status === 'active'
+          ? `${row.email} has been disabled and removed from Active Users.`
+          : `${row.email} has been rejected and removed from the approval queue.`,
     });
   }
 
   function requestRejectApproval(row) {
+    const isActiveUser = row.status === 'active';
+
     setConfirmation({
-      title: 'Reject access?',
-      message: `Are you sure you want to reject or suspend access for ${row.email}?`,
-      confirmLabel: 'Reject / Suspend',
+      title: isActiveUser ? 'Disable access?' : 'Reject access?',
+      message: isActiveUser
+        ? `Are you sure you want to disable or suspend access for ${row.email}?`
+        : `Are you sure you want to reject or suspend access for ${row.email}?`,
+      confirmLabel: isActiveUser ? 'Disable / Suspend' : 'Reject / Suspend',
       action: () => rejectPendingAccess(row),
     });
   }
@@ -8208,14 +8222,19 @@ function AccessApprovalSection({
   const [activeApprovalTab, setActiveApprovalTab] = useState('pending');
   const pendingCount = pendingUsers.filter((user) => user.status === 'pending').length;
   const rejectedCount = pendingUsers.filter((user) => user.status === 'disabled').length;
+  const activeCount = pendingUsers.filter((user) => user.status === 'active').length;
   const visibleUsers = pendingUsers.filter((user) => user.status === activeApprovalTab);
   const isRejectedTab = activeApprovalTab === 'disabled';
-  const emptyStateMessage = isRejectedTab
+  const isActiveUsersTab = activeApprovalTab === 'active';
+  const emptyStateMessage = isActiveUsersTab
+    ? 'No active users are currently listed.'
+    : isRejectedTab
     ? 'No rejected accounts are currently suspended.'
     : 'No pending registration approvals.';
   const approvalTabs = [
     { id: 'pending', label: 'Pending Review', count: pendingCount },
     { id: 'disabled', label: 'Rejected Accounts', count: rejectedCount },
+    { id: 'active', label: 'Active Users', count: activeCount },
   ];
 
   return (
@@ -8335,16 +8354,31 @@ function AccessApprovalSection({
 
                 <span
                   className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-black ring-1 ${
-                    isRejectedTab
+                    isActiveUsersTab
+                      ? 'bg-green-50 text-green-700 ring-green-600/20'
+                      : isRejectedTab
                       ? 'bg-red-50 text-red-700 ring-red-600/20'
                       : 'bg-orange-50 text-orange-700 ring-orange-600/20'
                   }`}
                 >
-                  {isRejectedTab ? 'Disabled / Rejected' : 'Pending HR Review'}
+                  {isActiveUsersTab
+                    ? 'Active'
+                    : isRejectedTab
+                    ? 'Disabled / Rejected'
+                    : 'Pending HR Review'}
                 </span>
 
                 <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
-                  {isRejectedTab ? (
+                  {isActiveUsersTab ? (
+                    <button
+                      type="button"
+                      onClick={() => onReject(user)}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-red-700"
+                    >
+                      <Ban className="h-4 w-4" aria-hidden="true" />
+                      Disable / Suspend Access
+                    </button>
+                  ) : isRejectedTab ? (
                     <button
                       type="button"
                       onClick={() => onApprove(user)}

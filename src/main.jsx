@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.42';
+const appVersion = '1.43';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -1194,7 +1194,7 @@ function App() {
   const [approvalError, setApprovalError] = useState('');
   const [lastApprovalSync, setLastApprovalSync] = useState(null);
   const approvalRefreshInFlight = useRef(false);
-  const approvedAccessEmailsRef = useRef(new Set());
+  const resolvedAccessEmailsRef = useRef(new Set());
   const [sendingResultCandidateIds, setSendingResultCandidateIds] = useState([]);
   const [resultOverview, setResultOverview] = useState({
     isOpen: false,
@@ -1955,9 +1955,9 @@ function App() {
         { action: 'get_pending_approvals' },
         { includeAdminSecret: true },
       );
-      const approvedEmails = approvedAccessEmailsRef.current;
+      const resolvedEmails = resolvedAccessEmailsRef.current;
       setPendingApprovals(
-        normalizePendingApprovals(response).filter((row) => !approvedEmails.has(row.email)),
+        normalizePendingApprovals(response).filter((row) => !resolvedEmails.has(row.email)),
       );
       setLastApprovalSync(new Date());
     } catch (error) {
@@ -1987,7 +1987,7 @@ function App() {
       throw new Error(response.message || 'Approval request failed.');
     }
 
-    approvedAccessEmailsRef.current.add(row.email);
+    resolvedAccessEmailsRef.current.add(row.email);
     setPendingApprovals((currentRows) =>
       currentRows.filter((currentRow) => currentRow.email !== row.email),
     );
@@ -2007,11 +2007,35 @@ function App() {
     });
   }
 
-  function handleRejectApproval(row) {
+  async function rejectPendingAccess(row) {
+    // n8n integration: route action === "reject_user" in the auth-engine Switch node,
+    // then update the matching Supabase auth/user row status to "rejected".
+    const response = await sendAuthEnginePayload(
+      { action: 'reject_user', user_email: row.email },
+      { includeAdminSecret: true },
+    );
+
+    if (response?.success === false) {
+      throw new Error(response.message || 'Reject request failed.');
+    }
+
+    resolvedAccessEmailsRef.current.add(row.email);
+    setPendingApprovals((currentRows) =>
+      currentRows.filter((currentRow) => currentRow.email !== row.email),
+    );
     showToast({
-      type: 'warning',
-      title: 'Reject action pending',
-      message: `${row.email} was not changed. Backend reject action has not been specified yet.`,
+      type: 'success',
+      title: 'Access rejected',
+      message: `${row.email} has been rejected and removed from the approval queue.`,
+    });
+  }
+
+  function requestRejectApproval(row) {
+    setConfirmation({
+      title: 'Reject access?',
+      message: `Are you sure you want to reject or suspend access for ${row.email}?`,
+      confirmLabel: 'Reject / Suspend',
+      action: () => rejectPendingAccess(row),
     });
   }
 
@@ -3366,7 +3390,7 @@ function updateProfileForm(field, value) {
                   lastSyncedAt={lastApprovalSync}
                   onApprove={requestApproveAccess}
                   onRefresh={() => fetchPendingApprovals()}
-                  onReject={handleRejectApproval}
+                  onReject={requestRejectApproval}
                   pendingUsers={pendingApprovals}
                 />
               ) : activeSection === 'test-portal' ? (

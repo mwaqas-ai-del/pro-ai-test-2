@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.43';
+const appVersion = '1.44';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -541,7 +541,7 @@ function normalizePendingApprovals(payload) {
       fullName: getApprovalDisplayName(row),
       email: row.email,
       createdAt: row.created_at || row.createdAt || row.registration_date || row.inserted_at || '',
-      status: row.status || 'pending',
+      status: String(row.status || 'pending').toLowerCase(),
     }))
     .sort((firstRow, secondRow) => {
       const firstTime = new Date(firstRow.createdAt || 0).getTime();
@@ -1194,7 +1194,8 @@ function App() {
   const [approvalError, setApprovalError] = useState('');
   const [lastApprovalSync, setLastApprovalSync] = useState(null);
   const approvalRefreshInFlight = useRef(false);
-  const resolvedAccessEmailsRef = useRef(new Set());
+  const approvedAccessEmailsRef = useRef(new Set());
+  const rejectedPendingEmailsRef = useRef(new Set());
   const [sendingResultCandidateIds, setSendingResultCandidateIds] = useState([]);
   const [resultOverview, setResultOverview] = useState({
     isOpen: false,
@@ -1955,9 +1956,14 @@ function App() {
         { action: 'get_pending_approvals' },
         { includeAdminSecret: true },
       );
-      const resolvedEmails = resolvedAccessEmailsRef.current;
+      const approvedEmails = approvedAccessEmailsRef.current;
+      const rejectedPendingEmails = rejectedPendingEmailsRef.current;
       setPendingApprovals(
-        normalizePendingApprovals(response).filter((row) => !resolvedEmails.has(row.email)),
+        normalizePendingApprovals(response).filter(
+          (row) =>
+            !approvedEmails.has(row.email) &&
+            !(row.status === 'pending' && rejectedPendingEmails.has(row.email)),
+        ),
       );
       setLastApprovalSync(new Date());
     } catch (error) {
@@ -1987,7 +1993,7 @@ function App() {
       throw new Error(response.message || 'Approval request failed.');
     }
 
-    resolvedAccessEmailsRef.current.add(row.email);
+    approvedAccessEmailsRef.current.add(row.email);
     setPendingApprovals((currentRows) =>
       currentRows.filter((currentRow) => currentRow.email !== row.email),
     );
@@ -2019,7 +2025,7 @@ function App() {
       throw new Error(response.message || 'Reject request failed.');
     }
 
-    resolvedAccessEmailsRef.current.add(row.email);
+    rejectedPendingEmailsRef.current.add(row.email);
     setPendingApprovals((currentRows) =>
       currentRows.filter((currentRow) => currentRow.email !== row.email),
     );
@@ -8199,7 +8205,18 @@ function AccessApprovalSection({
   onReject,
   pendingUsers,
 }) {
-  const pendingCount = pendingUsers.length;
+  const [activeApprovalTab, setActiveApprovalTab] = useState('pending');
+  const pendingCount = pendingUsers.filter((user) => user.status === 'pending').length;
+  const rejectedCount = pendingUsers.filter((user) => user.status === 'disabled').length;
+  const visibleUsers = pendingUsers.filter((user) => user.status === activeApprovalTab);
+  const isRejectedTab = activeApprovalTab === 'disabled';
+  const emptyStateMessage = isRejectedTab
+    ? 'No rejected accounts are currently suspended.'
+    : 'No pending registration approvals.';
+  const approvalTabs = [
+    { id: 'pending', label: 'Pending Review', count: pendingCount },
+    { id: 'disabled', label: 'Rejected Accounts', count: rejectedCount },
+  ];
 
   return (
     <section className="space-y-6">
@@ -8241,6 +8258,33 @@ function AccessApprovalSection({
       ) : null}
 
       <section className="overflow-hidden rounded-xl border border-[#cfc4c5] bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-[#cfc4c5] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="inline-flex w-full rounded-lg bg-[#f5f3f3] p-1 sm:w-auto">
+            {approvalTabs.map((tab) => {
+              const isActive = activeApprovalTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveApprovalTab(tab.id)}
+                  className={`flex-1 rounded-md px-4 py-2 text-xs font-black transition duration-200 sm:flex-none ${
+                    isActive
+                      ? 'bg-[#1b1b1b] text-white shadow-sm'
+                      : 'text-[#4c4546] hover:bg-white hover:text-[#1b1c1c]'
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5">{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs font-semibold text-[#7e7576]">
+            Showing {visibleUsers.length} account{visibleUsers.length === 1 ? '' : 's'}
+          </p>
+        </div>
+
         <div className="grid grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] gap-4 border-b border-[#cfc4c5] bg-[#f5f3f3] px-5 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#7e7576] max-xl:hidden">
           <span>Full Name / Profile</span>
           <span>Corporate Email</span>
@@ -8249,7 +8293,7 @@ function AccessApprovalSection({
           <span className="text-right">Actions</span>
         </div>
 
-        {isLoading && pendingUsers.length === 0 ? (
+        {isLoading && visibleUsers.length === 0 ? (
           <div className="space-y-3 p-5">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
@@ -8258,17 +8302,17 @@ function AccessApprovalSection({
               />
             ))}
           </div>
-        ) : pendingUsers.length === 0 ? (
+        ) : visibleUsers.length === 0 ? (
           <div className="p-8">
             <EmptyState
               icon={Inbox}
               title="All caught up!"
-              message="No pending registration approvals."
+              message={emptyStateMessage}
             />
           </div>
         ) : (
           <div className="divide-y divide-[#cfc4c5]">
-            {pendingUsers.map((user) => (
+            {visibleUsers.map((user) => (
               <article
                 key={user.id}
                 className="grid gap-4 px-5 py-5 transition duration-200 hover:bg-[#f5f3f3] xl:grid-cols-[1.2fr_1.3fr_1fr_0.9fr_1.3fr] xl:items-center"
@@ -8289,27 +8333,46 @@ function AccessApprovalSection({
                   {formatApprovalDate(user.createdAt)}
                 </p>
 
-                <span className="inline-flex w-fit items-center rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700 ring-1 ring-orange-600/20">
-                  Pending HR Review
+                <span
+                  className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-black ring-1 ${
+                    isRejectedTab
+                      ? 'bg-red-50 text-red-700 ring-red-600/20'
+                      : 'bg-orange-50 text-orange-700 ring-orange-600/20'
+                  }`}
+                >
+                  {isRejectedTab ? 'Disabled / Rejected' : 'Pending HR Review'}
                 </span>
 
                 <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => onApprove(user)}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
-                  >
-                    <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                    Approve Access
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onReject(user)}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-700 transition duration-200 hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50"
-                  >
-                    <Ban className="h-4 w-4" aria-hidden="true" />
-                    Reject / Suspend
-                  </button>
+                  {isRejectedTab ? (
+                    <button
+                      type="button"
+                      onClick={() => onApprove(user)}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                      Restore & Approve Access
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onApprove(user)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-black text-white transition duration-200 hover:-translate-y-0.5 hover:bg-green-700"
+                      >
+                        <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                        Approve Access
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onReject(user)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-700 transition duration-200 hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50"
+                      >
+                        <Ban className="h-4 w-4" aria-hidden="true" />
+                        Reject / Suspend
+                      </button>
+                    </>
+                  )}
                 </div>
               </article>
             ))}

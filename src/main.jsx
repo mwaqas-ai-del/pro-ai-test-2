@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.41';
+const appVersion = '1.42';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -1194,6 +1194,7 @@ function App() {
   const [approvalError, setApprovalError] = useState('');
   const [lastApprovalSync, setLastApprovalSync] = useState(null);
   const approvalRefreshInFlight = useRef(false);
+  const approvedAccessEmailsRef = useRef(new Set());
   const [sendingResultCandidateIds, setSendingResultCandidateIds] = useState([]);
   const [resultOverview, setResultOverview] = useState({
     isOpen: false,
@@ -1329,7 +1330,6 @@ function App() {
 
     fetchDashboardData();
     fetchQuestionBatches();
-    fetchPendingApprovals({ silent: true });
 
     const storedBatchId = window.localStorage.getItem(activeQuestionBatchStorageKey);
     if (storedBatchId) {
@@ -1362,7 +1362,7 @@ function App() {
   }, [activeSection, isAdminAuthenticated]);
 
   useEffect(() => {
-    if (!isAdminAuthenticated) {
+    if (!isAdminAuthenticated || activeSection !== 'dashboard') {
       return undefined;
     }
 
@@ -1391,7 +1391,7 @@ function App() {
       document.removeEventListener('visibilitychange', refreshWhenVisible);
       window.removeEventListener('focus', refreshDashboardSilently);
     };
-  }, [isAdminAuthenticated]);
+  }, [activeSection, isAdminAuthenticated]);
 
   useEffect(() => {
     if (!resultOverview.isOpen || !resultOverview.candidate?.id) {
@@ -1955,7 +1955,10 @@ function App() {
         { action: 'get_pending_approvals' },
         { includeAdminSecret: true },
       );
-      setPendingApprovals(normalizePendingApprovals(response));
+      const approvedEmails = approvedAccessEmailsRef.current;
+      setPendingApprovals(
+        normalizePendingApprovals(response).filter((row) => !approvedEmails.has(row.email)),
+      );
       setLastApprovalSync(new Date());
     } catch (error) {
       setApprovalError(error.message || 'Unable to fetch pending approval requests.');
@@ -1984,6 +1987,7 @@ function App() {
       throw new Error(response.message || 'Approval request failed.');
     }
 
+    approvedAccessEmailsRef.current.add(row.email);
     setPendingApprovals((currentRows) =>
       currentRows.filter((currentRow) => currentRow.email !== row.email),
     );
@@ -2742,13 +2746,12 @@ function updateProfileForm(field, value) {
       try {
         await confirmation.action();
         setConfirmation(null);
-      } catch {
+      } catch (error) {
         setGenerationError('Action failed, please try again');
-        setProfileError('Profile action could not be completed.');
         showToast({
           type: 'error',
           title: 'Action failed',
-          message: 'The requested action could not be completed.',
+          message: error.message || 'The requested action could not be completed.',
         });
       } finally {
         setIsConfirmingAction(false);

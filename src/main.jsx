@@ -171,7 +171,7 @@ const resultEmailerWebhookUrl = getRequiredEnv('VITE_RESULT_EMAILER_WEBHOOK_URL'
 const authEngineWebhookUrl = getRequiredEnv('VITE_AUTH_ENGINE_WEBHOOK_URL');
 const authAdminSecret = getRequiredEnv('VITE_AUTH_ADMIN_SECRET');
 const dashboardResultEmailNotificationsEnabled = true;
-const appVersion = '1.51';
+const appVersion = '1.52';
 const defaultTestDurationMinutes = 75;
 const testDurationOptions = [
   { label: '45 minutes', value: 45 },
@@ -520,6 +520,28 @@ function getApprovalDisplayName(row) {
   return row.full_name || row.name || row.profile_name || row.email?.split('@')[0] || 'Pending User';
 }
 
+function getApprovalRoleLabel(row) {
+  const rawRole =
+    row.role ||
+    row.account_role ||
+    row.target_role ||
+    row.user_role ||
+    row.profile_role ||
+    row.access_role ||
+    '';
+  const role = String(rawRole || '').trim().toLowerCase();
+
+  if (role === 'admin') {
+    return 'Admin';
+  }
+
+  if (role === 'manager') {
+    return 'Manager';
+  }
+
+  return rawRole ? String(rawRole).trim() : 'Role unavailable';
+}
+
 function getInitials(name) {
   return String(name || 'User')
     .split(/\s+/)
@@ -540,6 +562,7 @@ function normalizePendingApprovals(payload) {
       id: row.id || row.user_id || row.email,
       fullName: getApprovalDisplayName(row),
       email: row.email,
+      roleLabel: getApprovalRoleLabel(row),
       createdAt: row.created_at || row.createdAt || row.registration_date || row.inserted_at || '',
       status: String(row.status || 'pending').toLowerCase(),
     }))
@@ -1213,10 +1236,18 @@ function App() {
     lastUpdated: null,
   });
   const [toasts, setToasts] = useState([]);
+  const storedAdminSession = getStoredAdminSession();
+  const isCurrentAdmin = String(storedAdminSession?.role || 'admin').toLowerCase() !== 'manager';
+  const availableNavItems = useMemo(
+    () => navItems.filter((item) => item.id !== 'access-approval' || isCurrentAdmin),
+    [isCurrentAdmin],
+  );
 
   const section = useMemo(
-    () => navItems.find((item) => item.id === activeSection && !item.disabled) || navItems[0],
-    [activeSection],
+    () =>
+      availableNavItems.find((item) => item.id === activeSection && !item.disabled) ||
+      availableNavItems[0],
+    [activeSection, availableNavItems],
   );
 
   useEffect(() => {
@@ -1329,6 +1360,13 @@ function App() {
   }, [candidates]);
 
   useEffect(() => {
+    if (isAdminAuthenticated && !isCurrentAdmin && activeSection === 'access-approval') {
+      updateAdminSectionHash(defaultAdminSectionId);
+      setActiveSection(defaultAdminSectionId);
+    }
+  }, [activeSection, isAdminAuthenticated, isCurrentAdmin]);
+
+  useEffect(() => {
     if (!isAdminAuthenticated) {
       return;
     }
@@ -1343,7 +1381,7 @@ function App() {
   }, [isAdminAuthenticated]);
 
   useEffect(() => {
-    if (!isAdminAuthenticated || activeSection !== 'access-approval') {
+    if (!isAdminAuthenticated || !isCurrentAdmin || activeSection !== 'access-approval') {
       return undefined;
     }
 
@@ -1364,7 +1402,7 @@ function App() {
       window.removeEventListener('focus', refreshApprovalsSilently);
       document.removeEventListener('visibilitychange', refreshApprovalsSilently);
     };
-  }, [activeSection, isAdminAuthenticated]);
+  }, [activeSection, isAdminAuthenticated, isCurrentAdmin]);
 
   useEffect(() => {
     if (!isAdminAuthenticated || activeSection !== 'dashboard') {
@@ -3167,7 +3205,7 @@ function updateProfileForm(field, value) {
 
   const isDarkTheme = adminTheme === 'dark';
   const ThemeIcon = isDarkTheme ? Sun : Moon;
-  const currentAdminSession = getStoredAdminSession();
+  const currentAdminSession = storedAdminSession;
   const currentAdminName = currentAdminSession?.label || currentAdminSession?.username || 'Admin User';
   const currentAdminRole = formatAccountRole(currentAdminSession?.role);
 
@@ -3215,7 +3253,7 @@ function updateProfileForm(field, value) {
           </div>
 
           <nav className="flex flex-1 flex-col gap-1" aria-label="Primary navigation">
-            {navItems.map((item) => {
+            {availableNavItems.map((item) => {
               const ItemIcon = item.icon;
               const isActive = item.id === activeSection;
               const isDisabled = Boolean(item.disabled);
@@ -3413,7 +3451,7 @@ function updateProfileForm(field, value) {
                   profileError={profileError}
                   profiles={profiles}
                 />
-              ) : activeSection === 'access-approval' ? (
+              ) : activeSection === 'access-approval' && isCurrentAdmin ? (
                 <AccessApprovalSection
                   error={approvalError}
                   isLoading={isLoadingApprovals}
@@ -8352,7 +8390,7 @@ function AccessApprovalSection({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-[#1b1c1c]">{user.fullName}</p>
-                    <p className="mt-0.5 text-xs font-semibold text-[#7e7576]">Internal account</p>
+                    <p className="mt-0.5 text-xs font-semibold text-[#7e7576]">{user.roleLabel}</p>
                   </div>
                 </div>
 

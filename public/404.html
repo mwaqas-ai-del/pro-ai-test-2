@@ -6,9 +6,9 @@
     <title>Redirecting...</title>
     <script>
       (function () {
-        var repoBase = '/pro-ai-test-2/';
+        var repoBase = '/';
         var path = window.location.pathname;
-        var route = path.indexOf(repoBase) === 0 ? path.slice(repoBase.length) : path.replace(/^\/+/, '');
+        var route = path.replace(/^\/+/, '');
         var target = window.location.origin + repoBase + '#/' + route + window.location.search;
 
         window.location.replace(target);

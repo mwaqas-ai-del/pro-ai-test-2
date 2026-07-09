@@ -5,6 +5,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const generationWebhookUrl = env.VITE_GENERATION_WEBHOOK_URL
   const generationWebhook = generationWebhookUrl ? new URL(generationWebhookUrl) : null
+  const appBasePath = env.VITE_APP_BASE_PATH || '/'
   const generationProxy = generationWebhook
     ? {
         '/api/generate-questions': {
@@ -17,7 +18,7 @@ export default defineConfig(({ mode }) => {
     : {}
 
   return {
-    base: '/pro-ai-test-2/',
+    base: appBasePath,
     plugins: [react()],
     server: {
       host: true,
